@@ -1,385 +1,656 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
 
-const locationData = {
+type Activity = {
+  title: string;
+  icon: string;
+  description: string;
+  category: string;
+  reward: number;
+  cost?: number;
+  action: string;
+};
+
+const locationData: Record<
+  string,
+  {
+    subtitle: string;
+    description: string;
+    icon: string;
+    activities: Activity[];
+  }
+> = {
   Wuse: {
-    emoji: "🏙️",
     subtitle: "The busy heart of everyday Abuja",
     description:
-      "A lively district filled with shopping, food, businesses, transport and people chasing their next opportunity.",
-    color: "from-emerald-500/25 to-cyan-500/10",
-    places: [
-      ["🛍️", "Wuse Market", "Shop for clothes, food, electronics and everyday items."],
-      ["🍔", "Food Street", "Grab food, meet people and discover popular spots."],
-      ["💈", "Style Corner", "Get a haircut, change your look and upgrade your character."],
-      ["🏪", "Local Shops", "Browse businesses and discover player-owned stores."],
-      ["🚕", "Transport Hub", "Find taxis, buses and other ways around Abuja."],
-      ["🎤", "Night Spot", "Music, comedy and social events after dark."],
-    ],
-    jobs: [
-      ["📦", "Delivery Runner", "Deliver packages around Wuse.", "₦1,500"],
-      ["🍳", "Food Assistant", "Help a busy restaurant during rush hour.", "₦2,000"],
-      ["📸", "Street Photographer", "Find interesting moments around Wuse.", "₦2,500"],
-      ["🛍️", "Market Assistant", "Help a shopkeeper with customers.", "₦1,800"],
-    ],
+      "Shopping, food, transport, street life and opportunities are everywhere in Wuse.",
+    icon: "🏙️",
     activities: [
-      ["🎯", "Mystery Delivery", "A secret package needs to reach someone before time runs out."],
-      ["🏎️", "Street Car Meet", "Players gather to show off their vehicles."],
-      ["🎤", "Open Mic Night", "Watch performances and meet other players."],
-      ["🔎", "Lost Item Hunt", "Search the area for a missing item and claim the reward."],
+      {
+        title: "Wuse Market",
+        icon: "🛍️",
+        description: "Shop for clothes, food, electronics and everyday items.",
+        category: "SHOPPING",
+        reward: 0,
+        cost: 2500,
+        action: "Go Shopping",
+      },
+      {
+        title: "Food Street",
+        icon: "🍔",
+        description: "Grab a meal and meet people around the busy food spots.",
+        category: "FOOD",
+        reward: 0,
+        cost: 1500,
+        action: "Grab Food",
+      },
+      {
+        title: "Street Hustle",
+        icon: "💼",
+        description: "Find a quick opportunity and earn some virtual cash.",
+        category: "JOB",
+        reward: 1800,
+        action: "Start Hustle",
+      },
+      {
+        title: "Taxi Stand",
+        icon: "🚕",
+        description: "Take passengers around Abuja and earn money.",
+        category: "TRANSPORT",
+        reward: 2200,
+        action: "Drive Taxi",
+      },
+      {
+        title: "Style Studio",
+        icon: "💈",
+        description: "Change your look and improve your style reputation.",
+        category: "STYLE",
+        reward: 0,
+        cost: 3000,
+        action: "Visit Studio",
+      },
+      {
+        title: "Night Hangout",
+        icon: "🌃",
+        description: "Meet other players and discover what is happening tonight.",
+        category: "SOCIAL",
+        reward: 500,
+        cost: 1000,
+        action: "Go Out",
+      },
     ],
   },
 
   Maitama: {
-    emoji: "🏡",
     subtitle: "Luxury, wealth and high society",
     description:
-      "Quiet streets, expensive homes, luxury businesses and some of the city's most exclusive opportunities.",
-    color: "from-yellow-500/20 to-emerald-500/10",
-    places: [
-      ["🏠", "Luxury Estates", "View premium homes and properties."],
-      ["🍽️", "Fine Dining", "Experience Abuja's expensive restaurants."],
-      ["🏨", "Luxury Hotel", "A premium destination for players and events."],
-      ["🚘", "Luxury Motors", "Discover premium vehicles."],
-      ["💎", "Elite Boutique", "Shop for rare and expensive items."],
-      ["🥂", "Private Lounge", "Exclusive social events and VIP gatherings."],
-    ],
-    jobs: [
-      ["👔", "Executive Assistant", "Work for a high-profile character.", "₦4,000"],
-      ["🚘", "Private Driver", "Drive VIP characters around Abuja.", "₦4,500"],
-      ["🏨", "Hotel Manager", "Manage guests and hotel operations.", "₦5,000"],
-      ["📸", "Luxury Photographer", "Photograph premium events.", "₦4,000"],
-    ],
+      "Quiet streets, expensive homes, luxury businesses and exclusive opportunities.",
+    icon: "🏡",
     activities: [
-      ["🥂", "VIP Party", "A private event is happening tonight."],
-      ["🚘", "Luxury Car Showcase", "See rare vehicles owned by players."],
-      ["💎", "Exclusive Auction", "Rare items appear for a limited time."],
-      ["🏆", "Elite Challenge", "Compete for reputation and a large reward."],
+      {
+        title: "Luxury Estates",
+        icon: "🏠",
+        description: "View premium homes and properties. Wealthy citizens live here.",
+        category: "PROPERTY",
+        reward: 0,
+        cost: 5000,
+        action: "View Estates",
+      },
+      {
+        title: "Fine Dining",
+        icon: "🍽️",
+        description: "Experience Abuja's expensive restaurants and meet VIPs.",
+        category: "SOCIAL",
+        reward: 500,
+        cost: 3500,
+        action: "Dine",
+      },
+      {
+        title: "Luxury Mall",
+        icon: "💎",
+        description: "Shop for premium clothing, accessories and rare items.",
+        category: "SHOPPING",
+        reward: 0,
+        cost: 7500,
+        action: "Enter Mall",
+      },
+      {
+        title: "Business Meeting",
+        icon: "🤝",
+        description: "Attend a private meeting and look for a valuable contract.",
+        category: "BUSINESS",
+        reward: 5000,
+        action: "Attend Meeting",
+      },
+      {
+        title: "Private Club",
+        icon: "🥂",
+        description: "Enter an exclusive social club for Abuja's elite.",
+        category: "VIP",
+        reward: 1000,
+        cost: 4000,
+        action: "Enter Club",
+      },
+      {
+        title: "Estate Security Job",
+        icon: "🛡️",
+        description: "Protect a luxury property and earn respectable money.",
+        category: "JOB",
+        reward: 3500,
+        action: "Take Shift",
+      },
     ],
   },
 
   Jabi: {
-    emoji: "🌊",
-    subtitle: "Lake views, entertainment and social life",
+    subtitle: "Lake views, restaurants and entertainment",
     description:
-      "A social part of Abuja where players can relax, eat, compete and enjoy events around the lake.",
-    color: "from-cyan-500/20 to-blue-500/10",
-    places: [
-      ["🌊", "Jabi Lake", "Relax, explore and take part in lake activities."],
-      ["🍽️", "Lake Restaurants", "Eat with friends and meet other players."],
-      ["🎮", "Game Zone", "Compete in fun mini-games."],
-      ["🏃", "Fitness Park", "Train your character and improve your stats."],
-      ["🎵", "Entertainment Spot", "Music and live entertainment."],
-      ["🚤", "Lake Activities", "Explore special activities around the waterfront."],
-    ],
-    jobs: [
-      ["📸", "Lake Photographer", "Take photos at popular locations.", "₦2,500"],
-      ["🍔", "Restaurant Worker", "Help serve customers.", "₦2,000"],
-      ["🎮", "Game Host", "Run activities at the game zone.", "₦2,200"],
-      ["🚤", "Activity Assistant", "Help visitors with lake activities.", "₦2,800"],
-    ],
+      "Relax by the lake, meet players, eat good food and enjoy Abuja nightlife.",
+    icon: "🌊",
     activities: [
-      ["🌅", "Jabi Sunset", "A special evening gathering begins at sunset."],
-      ["🚗", "Jabi Car Meet", "Players bring their best cars to the lake."],
-      ["🎣", "Fishing Challenge", "Compete to find the biggest catch."],
-      ["🎉", "Lake Festival", "Food, music and activities across Jabi."],
+      {
+        title: "Jabi Lake",
+        icon: "🌊",
+        description: "Relax around the lake and discover activities nearby.",
+        category: "LEISURE",
+        reward: 300,
+        action: "Visit Lake",
+      },
+      {
+        title: "Boat Ride",
+        icon: "🚤",
+        description: "Take a virtual boat ride around Jabi Lake.",
+        category: "FUN",
+        reward: 200,
+        cost: 2000,
+        action: "Take Boat Ride",
+      },
+      {
+        title: "Jabi Mall",
+        icon: "🛒",
+        description: "Shop, eat and explore one of Abuja's busiest entertainment areas.",
+        category: "SHOPPING",
+        reward: 0,
+        cost: 2500,
+        action: "Enter Mall",
+      },
+      {
+        title: "Lake Restaurant",
+        icon: "🍝",
+        description: "Have dinner with a view of the lake.",
+        category: "FOOD",
+        reward: 500,
+        cost: 3000,
+        action: "Have Dinner",
+      },
+      {
+        title: "Night Vibes",
+        icon: "🎶",
+        description: "Join the evening crowd and meet other players.",
+        category: "SOCIAL",
+        reward: 700,
+        cost: 1500,
+        action: "Join Vibes",
+      },
+      {
+        title: "Mystery Delivery",
+        icon: "📦",
+        description: "A mysterious customer needs something delivered around Jabi.",
+        category: "MISSION",
+        reward: 4000,
+        action: "Accept Mission",
+      },
     ],
   },
 
   Garki: {
-    emoji: "🏢",
-    subtitle: "Business, offices and opportunity",
+    subtitle: "Business, offices and everyday opportunities",
     description:
-      "A busy commercial district where players can work, build businesses and chase bigger opportunities.",
-    color: "from-orange-500/20 to-emerald-500/10",
-    places: [
-      ["🏢", "Business Centre", "Find offices and professional opportunities."],
-      ["🏦", "Financial District", "Banks and financial businesses."],
-      ["🛒", "Shopping Area", "Everyday shopping and services."],
-      ["🍴", "Restaurant Row", "Restaurants for workers and visitors."],
-      ["🚕", "Taxi Point", "Quick transport around the city."],
-      ["📰", "News Office", "Abuja Daily gathers city stories here."],
-    ],
-    jobs: [
-      ["💼", "Office Worker", "Complete office tasks for a salary.", "₦2,500"],
-      ["📰", "Reporter", "Find stories and report city events.", "₦3,000"],
-      ["📊", "Business Analyst", "Complete business challenges.", "₦3,500"],
-      ["🚕", "Taxi Driver", "Take passengers around Abuja.", "₦2,800"],
-    ],
+      "A busy district where careers, contracts and businesses come together.",
+    icon: "🏢",
     activities: [
-      ["📰", "Breaking Story", "A major story has just appeared in Abuja."],
-      ["💼", "Business Rush", "Companies need temporary workers."],
-      ["📦", "Express Delivery", "A valuable package needs a fast delivery."],
-      ["🏆", "Business Challenge", "Compete with other players for rewards."],
+      {
+        title: "Office Work",
+        icon: "💻",
+        description: "Complete a short office shift and earn virtual money.",
+        category: "JOB",
+        reward: 3000,
+        action: "Start Shift",
+      },
+      {
+        title: "Business District",
+        icon: "📊",
+        description: "Look for contracts and business opportunities.",
+        category: "BUSINESS",
+        reward: 2500,
+        action: "Find Contract",
+      },
+      {
+        title: "Shopping Plaza",
+        icon: "🛍️",
+        description: "Buy everyday items for your character.",
+        category: "SHOPPING",
+        reward: 0,
+        cost: 2000,
+        action: "Go Shopping",
+      },
+      {
+        title: "Restaurant",
+        icon: "🍛",
+        description: "Eat a proper meal and restore your energy.",
+        category: "FOOD",
+        reward: 300,
+        cost: 1200,
+        action: "Eat Meal",
+      },
+      {
+        title: "Courier Job",
+        icon: "🏍️",
+        description: "Deliver packages around Garki.",
+        category: "JOB",
+        reward: 2800,
+        action: "Deliver Package",
+      },
+      {
+        title: "Business Networking",
+        icon: "🤝",
+        description: "Meet business-minded players and improve your reputation.",
+        category: "SOCIAL",
+        reward: 800,
+        cost: 500,
+        action: "Network",
+      },
     ],
   },
 
   "Wuse 2": {
-    emoji: "🍸",
-    subtitle: "Nightlife, restaurants and entertainment",
+    subtitle: "Restaurants, clubs and Abuja nightlife",
     description:
-      "When Abuja gets dark, Wuse 2 comes alive with music, food, games and social events.",
-    color: "from-purple-500/20 to-pink-500/10",
-    places: [
-      ["🍸", "Night Club", "Dance, socialize and meet players."],
-      ["🍽️", "Restaurant District", "Popular restaurants and late-night food."],
-      ["😂", "Comedy Lounge", "Comedy shows and special events."],
-      ["🎮", "Gaming Lounge", "Competitive gaming activities."],
-      ["🎵", "Live Music", "Artists and performers take the stage."],
-      ["🚗", "Night Car Meet", "Show off your vehicle after dark."],
-    ],
-    jobs: [
-      ["🎧", "DJ Assistant", "Help run nightlife events.", "₦3,000"],
-      ["🍹", "Event Worker", "Work at busy evening events.", "₦2,500"],
-      ["📸", "Event Photographer", "Capture nightlife moments.", "₦3,500"],
-      ["🎤", "Event Host", "Host entertainment activities.", "₦3,200"],
-    ],
+      "The place to be when Abuja comes alive after dark.",
+    icon: "🍸",
     activities: [
-      ["🎤", "Comedy Night", "A major comedy event is starting tonight."],
-      ["🎵", "Live Music", "Players gather for a live performance."],
-      ["🎮", "Gaming Tournament", "Compete for the weekly leaderboard."],
-      ["🚗", "Midnight Car Meet", "A secret car meet has appeared."],
+      {
+        title: "Night Club",
+        icon: "🪩",
+        description: "Dance, socialize and meet other players.",
+        category: "NIGHTLIFE",
+        reward: 800,
+        cost: 2500,
+        action: "Enter Club",
+      },
+      {
+        title: "Live Music",
+        icon: "🎤",
+        description: "Catch a live performance and enjoy the night.",
+        category: "ENTERTAINMENT",
+        reward: 500,
+        cost: 1500,
+        action: "Watch Show",
+      },
+      {
+        title: "Fine Restaurant",
+        icon: "🍷",
+        description: "Have dinner at one of the city's stylish restaurants.",
+        category: "FOOD",
+        reward: 400,
+        cost: 3000,
+        action: "Book Table",
+      },
+      {
+        title: "Car Meet",
+        icon: "🚘",
+        description: "Show off your ride and meet car enthusiasts.",
+        category: "EVENT",
+        reward: 1500,
+        action: "Join Car Meet",
+      },
+      {
+        title: "Comedy Night",
+        icon: "😂",
+        description: "Attend a comedy event and meet the Abuja crowd.",
+        category: "EVENT",
+        reward: 600,
+        cost: 1000,
+        action: "Attend Event",
+      },
+      {
+        title: "DJ Challenge",
+        icon: "🎧",
+        description: "Take part in a nightlife challenge.",
+        category: "CHALLENGE",
+        reward: 3500,
+        action: "Enter Challenge",
+      },
     ],
   },
 
   CBD: {
-    emoji: "🏛️",
-    subtitle: "The centre of Abuja's power and business",
+    subtitle: "The heart of Abuja's business district",
     description:
-      "The city's central district, filled with major businesses, offices, hotels and important events.",
-    color: "from-blue-500/20 to-emerald-500/10",
-    places: [
-      ["🏢", "Corporate Towers", "High-level jobs and businesses."],
-      ["🏦", "Central Bank District", "Major financial activity."],
-      ["🏨", "Grand Hotel", "Luxury accommodation and events."],
-      ["🛍️", "City Mall", "Premium shopping and entertainment."],
-      ["📰", "Abuja Daily HQ", "The centre of city news."],
-      ["📢", "Advertising District", "Major advertising opportunities."],
-    ],
-    jobs: [
-      ["👔", "Corporate Employee", "Work for a major company.", "₦4,000"],
-      ["📰", "Senior Journalist", "Investigate important city stories.", "₦4,500"],
-      ["💼", "Business Consultant", "Solve business challenges.", "₦5,000"],
-      ["📢", "Advertising Agent", "Help businesses reach players.", "₦4,500"],
-    ],
+      "Corporate offices, major opportunities and some of the biggest businesses in the city.",
+    icon: "🏛️",
     activities: [
-      ["📢", "Major Announcement", "Something big is happening in Abuja."],
-      ["🏆", "City Championship", "Players compete for a major prize."],
-      ["📰", "Breaking News", "A major story needs investigation."],
-      ["💼", "Business Summit", "Meet businesses and discover opportunities."],
+      {
+        title: "Corporate Job",
+        icon: "💼",
+        description: "Take a professional shift in the CBD.",
+        category: "JOB",
+        reward: 4500,
+        action: "Start Work",
+      },
+      {
+        title: "Banking District",
+        icon: "🏦",
+        description: "Handle financial errands and business tasks.",
+        category: "BUSINESS",
+        reward: 2500,
+        action: "Handle Task",
+      },
+      {
+        title: "Government Contract",
+        icon: "📑",
+        description: "Apply for a high-value city contract.",
+        category: "CONTRACT",
+        reward: 7500,
+        action: "Apply",
+      },
+      {
+        title: "Business Tower",
+        icon: "🏢",
+        description: "Look for companies hiring talented citizens.",
+        category: "CAREER",
+        reward: 3000,
+        action: "Search Jobs",
+      },
+      {
+        title: "CBD Restaurant",
+        icon: "🍽️",
+        description: "Take a break and meet professionals.",
+        category: "FOOD",
+        reward: 500,
+        cost: 2000,
+        action: "Have Lunch",
+      },
+      {
+        title: "Investor Meetup",
+        icon: "💰",
+        description: "Pitch your business idea to potential investors.",
+        category: "BUSINESS",
+        reward: 10000,
+        cost: 1500,
+        action: "Pitch Idea",
+      },
     ],
   },
 };
 
-type LocationKey = keyof typeof locationData;
-
 export default function LocationPage() {
   const searchParams = useSearchParams();
-  const requestedName = searchParams.get("name") || "Wuse";
 
-  const locationName = (
-    Object.keys(locationData).includes(requestedName)
-      ? requestedName
-      : "Wuse"
-  ) as LocationKey;
+  const rawName = searchParams.get("name") || "Wuse";
 
-  const location = useMemo(() => locationData[locationName], [locationName]);
+  const locationName = Object.keys(locationData).find(
+    (name) => name.toLowerCase() === rawName.toLowerCase()
+  ) || "Wuse";
+
+  const location = locationData[locationName];
+
+  const [balance, setBalance] = useState(10000);
+  const [message, setMessage] = useState("");
+  const [activeCategory, setActiveCategory] = useState("ALL");
+
+  const categories = useMemo(() => {
+    return [
+      "ALL",
+      ...Array.from(
+        new Set(location.activities.map((activity) => activity.category))
+      ),
+    ];
+  }, [location.activities]);
+
+  const visibleActivities =
+    activeCategory === "ALL"
+      ? location.activities
+      : location.activities.filter(
+          (activity) => activity.category === activeCategory
+        );
+
+  function handleActivity(activity: Activity) {
+    const cost = activity.cost || 0;
+
+    if (balance < cost) {
+      setMessage(
+        `❌ You need ₦${cost.toLocaleString()} to do "${activity.title}".`
+      );
+      return;
+    }
+
+    setBalance((current) => current - cost + activity.reward);
+
+    if (cost > 0 && activity.reward > 0) {
+      setMessage(
+        `🔥 ${activity.action} complete! You spent ₦${cost.toLocaleString()} and earned ₦${activity.reward.toLocaleString()}.`
+      );
+    } else if (cost > 0) {
+      setMessage(
+        `✅ You completed "${activity.title}" and spent ₦${cost.toLocaleString()}.`
+      );
+    } else {
+      setMessage(
+        `🎉 "${activity.title}" complete! You earned ₦${activity.reward.toLocaleString()}.`
+      );
+    }
+  }
 
   return (
-    <main className="min-h-screen bg-[#07110f] text-white">
-      {/* NAV */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110f]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/game" className="font-black tracking-tight">
+    <main className="min-h-screen bg-[#06100e] text-white">
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#06100e]/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+          <Link
+            href="/game"
+            className="text-lg font-black tracking-tight hover:text-emerald-300"
+          >
             ABUJA <span className="text-emerald-400">LIFE</span>
           </Link>
 
           <div className="flex items-center gap-3">
             <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2">
-              <div className="text-[9px] uppercase text-white/40">
-                Balance
+              <div className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+                Wallet
               </div>
-              <div className="font-black text-emerald-300">₦10,000</div>
+              <div className="font-black text-emerald-300">
+                ₦{balance.toLocaleString()}
+              </div>
             </div>
 
             <Link
               href="/game"
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold hover:bg-white/10"
             >
-              ← City
+              ← Abuja
             </Link>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* HERO */}
-      <section className="mx-auto max-w-7xl px-4 pt-8">
-        <div
-          className={`rounded-[2rem] border border-white/10 bg-gradient-to-br ${location.color} p-6 md:p-10`}
-        >
-          <div className="flex flex-col justify-between gap-8 md:flex-row">
-            <div>
-              <div className="text-7xl">{location.emoji}</div>
+      {/* LOCATION HERO */}
+      <section className="mx-auto max-w-7xl px-5 pt-8">
+        <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-emerald-500/20 via-[#10211c] to-cyan-500/10 p-7 shadow-2xl md:p-10">
+          <div className="text-6xl">{location.icon}</div>
 
-              <p className="mt-5 text-xs font-black uppercase tracking-[0.3em] text-emerald-300">
-                Abuja Life • District
-              </p>
+          <div className="mt-6 text-xs font-black uppercase tracking-[0.3em] text-emerald-300">
+            Abuja Life • District
+          </div>
 
-              <h1 className="mt-2 text-5xl font-black md:text-7xl">
-                {locationName}
-              </h1>
+          <h1 className="mt-2 text-5xl font-black tracking-tight md:text-7xl">
+            {locationName}
+          </h1>
 
-              <p className="mt-3 text-xl font-bold text-white/70">
-                {location.subtitle}
-              </p>
+          <h2 className="mt-3 text-xl font-bold text-white/80 md:text-2xl">
+            {location.subtitle}
+          </h2>
 
-              <p className="mt-4 max-w-2xl leading-7 text-white/50">
-                {location.description}
-              </p>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
+            {location.description}
+          </p>
+
+          <div className="mt-7 flex flex-wrap gap-3">
+            <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-bold text-emerald-300">
+              📍 You are here
             </div>
 
-            <div className="flex items-end">
-              <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
-                <div className="text-xs uppercase tracking-widest text-white/40">
-                  You are here
-                </div>
-                <div className="mt-2 text-2xl font-black">
-                  📍 {locationName}
-                </div>
-                <div className="mt-1 text-sm text-emerald-300">
-                  Population active
-                </div>
-              </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white/60">
+              👥 Players nearby
+            </div>
+
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white/60">
+              🎯 {location.activities.length} activities
             </div>
           </div>
         </div>
       </section>
 
-      {/* PLACES */}
-      <section className="mx-auto max-w-7xl px-4 py-10">
-        <div className="mb-5">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">
+      {/* ACTIVITY SECTION */}
+      <section className="mx-auto max-w-7xl px-5 py-10">
+        <div className="mb-6">
+          <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-300">
             Explore
-          </p>
-          <h2 className="mt-1 text-3xl font-black">
+          </div>
+
+          <h2 className="mt-1 text-3xl font-black md:text-4xl">
             Things to do in {locationName}
           </h2>
+
+          <p className="mt-2 text-sm text-white/40">
+            Every activity can affect your life in Abuja.
+          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {location.places.map(([icon, title, description]) => (
+        {/* FILTERS */}
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+          {categories.map((category) => (
             <button
-              key={title}
-              className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:-translate-y-1 hover:border-emerald-400/40 hover:bg-white/[0.07]"
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-black transition ${
+                activeCategory === category
+                  ? "bg-emerald-400 text-black"
+                  : "border border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+              }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-4xl">{icon}</span>
-                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-300">
-                  EXPLORE
-                </span>
-              </div>
-
-              <h3 className="mt-5 text-xl font-black">{title}</h3>
-
-              <p className="mt-2 text-sm leading-6 text-white/45">
-                {description}
-              </p>
-
-              <div className="mt-4 text-xs font-black text-emerald-300">
-                ENTER →
-              </div>
+              {category}
             </button>
           ))}
         </div>
-      </section>
 
-      {/* JOBS */}
-      <section className="mx-auto max-w-7xl px-4 pb-10">
-        <div className="mb-5">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-yellow-300">
-            Make Money
-          </p>
-          <h2 className="mt-1 text-3xl font-black">Jobs available here</h2>
-        </div>
+        {/* MESSAGE */}
+        {message && (
+          <div className="mb-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
+            {message}
+          </div>
+        )}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {location.jobs.map(([icon, title, description, pay]) => (
+        {/* ACTIVITIES */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visibleActivities.map((activity) => (
             <div
-              key={title}
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"
+              key={activity.title}
+              className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-white/[0.07]"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-yellow-400/10 text-3xl">
-                  {icon}
+              <div className="flex items-start justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-3xl">
+                  {activity.icon}
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-black">{title}</h3>
-                      <p className="mt-1 text-sm text-white/45">
-                        {description}
-                      </p>
-                    </div>
+                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[9px] font-black text-emerald-300">
+                  {activity.category}
+                </span>
+              </div>
 
-                    <div className="whitespace-nowrap text-sm font-black text-yellow-300">
-                      {pay}
-                    </div>
-                  </div>
+              <h3 className="mt-5 text-xl font-black">
+                {activity.title}
+              </h3>
 
-                  <button className="mt-4 rounded-xl bg-emerald-400 px-4 py-2 text-xs font-black text-black hover:bg-emerald-300">
-                    VIEW JOB →
-                  </button>
+              <p className="mt-2 min-h-[50px] text-sm leading-6 text-white/45">
+                {activity.description}
+              </p>
+
+              <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+                <div>
+                  {activity.cost ? (
+                    <>
+                      <div className="text-[9px] uppercase tracking-widest text-white/30">
+                        Cost
+                      </div>
+                      <div className="font-black text-red-300">
+                        -₦{activity.cost.toLocaleString()}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[9px] uppercase tracking-widest text-white/30">
+                        Reward
+                      </div>
+                      <div className="font-black text-emerald-300">
+                        +₦{activity.reward.toLocaleString()}
+                      </div>
+                    </>
+                  )}
                 </div>
+
+                <button
+                  onClick={() => handleActivity(activity)}
+                  className="rounded-xl bg-emerald-400 px-4 py-2.5 text-xs font-black text-black transition hover:bg-emerald-300"
+                >
+                  {activity.action} →
+                </button>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* EVENTS */}
-      <section className="mx-auto max-w-7xl px-4 pb-12">
-        <div className="mb-5">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-pink-300">
-            Live Activity
-          </p>
-          <h2 className="mt-1 text-3xl font-black">
-            What's happening here?
-          </h2>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {location.activities.map(([icon, title, description]) => (
-            <div
-              key={title}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5"
-            >
-              <div className="text-4xl">{icon}</div>
-
-              <h3 className="mt-5 font-black">{title}</h3>
-
-              <p className="mt-2 text-sm leading-6 text-white/45">
-                {description}
-              </p>
-
-              <button className="mt-5 w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-black hover:bg-emerald-400 hover:text-black">
-                VIEW EVENT
-              </button>
+      {/* PLAYER STATUS */}
+      <section className="mx-auto max-w-7xl px-5 pb-10">
+        <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 p-6">
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-white/30">
+                Current Location
+              </div>
+              <div className="mt-1 font-black">{locationName}</div>
             </div>
-          ))}
+
+            <div>
+              <div className="text-xs uppercase tracking-widest text-white/30">
+                Wallet
+              </div>
+              <div className="mt-1 font-black text-emerald-300">
+                ₦{balance.toLocaleString()}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs uppercase tracking-widest text-white/30">
+                Status
+              </div>
+              <div className="mt-1 font-black text-cyan-300">
+                🟢 Active Citizen
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-white/10 px-4 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 text-sm text-white/35 sm:flex-row">
-          <span>Abuja Life • {locationName}</span>
-          <Link href="/game" className="hover:text-white">
-            Return to Abuja →
-          </Link>
+      <footer className="border-t border-white/10 px-5 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 text-sm text-white/30 sm:flex-row">
+          <div>© {new Date().getFullYear()} Abuja Life</div>
+          <div>Your city. Your story. 🇳🇬</div>
         </div>
       </footer>
     </main>
