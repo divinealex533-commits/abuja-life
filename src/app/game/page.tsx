@@ -826,6 +826,26 @@ const cityActivities = [
     </span>
   </div>
 </Link>
+
+<Link
+  href="/admin/player-actions"
+  className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-orange-500/30 hover:bg-orange-500/[0.05]"
+>
+  <div className="text-2xl">🧾</div>
+
+  <h3 className="mt-4 font-black">
+    Player Action History
+  </h3>
+
+  <p className="mt-1 text-xs leading-5 text-slate-500">
+    Audit freezes, cash changes, XP,
+    reputation, location moves and resets.
+  </p>
+
+  <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-orange-400">
+    View Audit Log →
+  </div>
+</Link>
             </div>
           </div>
 
