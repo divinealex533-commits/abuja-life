@@ -28,7 +28,9 @@ export async function GET(request: Request) {
         updated_at
         `
       )
-      .order("updated_at", { ascending: false })
+      .order("updated_at", {
+        ascending: false,
+      })
       .limit(500);
 
     if (search) {
@@ -37,13 +39,19 @@ export async function GET(request: Request) {
       );
     }
 
-    const { data: profiles, error: profileError } =
-      await profileQuery;
+    const {
+      data: profiles,
+      error: profileError,
+    } = await profileQuery;
 
     if (profileError) {
       return NextResponse.json(
-        { error: profileError.message },
-        { status: 500 }
+        {
+          error: profileError.message,
+        },
+        {
+          status: 500,
+        }
       );
     }
 
@@ -51,10 +59,24 @@ export async function GET(request: Request) {
       (player) => player.id
     );
 
-    let gameStates: any[] = [];
+    let gameStates: Array<{
+      user_id: string;
+      cash: number;
+      energy: number;
+      max_energy: number;
+      reputation: number;
+      current_job_id: string | null;
+      job_experience: number;
+      current_location_id: string;
+      is_frozen: boolean;
+      updated_at: string;
+    }> = [];
 
     if (playerIds.length > 0) {
-      const { data, error } = await supabase
+      const {
+        data,
+        error: stateError,
+      } = await supabase
         .from("player_game_states")
         .select(
           `
@@ -66,15 +88,20 @@ export async function GET(request: Request) {
           current_job_id,
           job_experience,
           current_location_id,
+          is_frozen,
           updated_at
           `
         )
         .in("user_id", playerIds);
 
-      if (error) {
+      if (stateError) {
         return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
+          {
+            error: stateError.message,
+          },
+          {
+            status: 500,
+          }
         );
       }
 
@@ -88,53 +115,94 @@ export async function GET(request: Request) {
       ])
     );
 
-    const players = (profiles ?? []).map((profile) => {
-      const state = stateMap.get(profile.id);
+    const players = (profiles ?? []).map(
+      (profile) => {
+        const state = stateMap.get(profile.id);
 
-      return {
-        id: profile.id,
-        username: profile.username,
-        displayName: profile.display_name,
-        avatar: profile.avatar ?? "🧑🏽",
-
-        level: profile.level ?? 1,
-        experience: profile.experience ?? 0,
-        reputation:
-          state?.reputation ??
-          profile.reputation ??
-          0,
-
-        cash: Number(state?.cash ?? 0),
-
-        energy: state?.energy ?? 0,
-        maxEnergy: state?.max_energy ?? 100,
-
-        currentJobId:
-          state?.current_job_id ?? null,
-
-        jobExperience:
-          state?.job_experience ?? 0,
-
-        currentLocationId:
-          state?.current_location_id ??
-          profile.current_location_id ??
-          "garki",
-
-        createdAt: profile.created_at,
-        updatedAt:
+        const updatedAt =
           state?.updated_at ??
-          profile.updated_at,
-      };
-    });
+          profile.updated_at;
+
+        const updatedTime =
+          new Date(updatedAt).getTime();
+
+        const recentlyActive =
+          Number.isFinite(updatedTime) &&
+          Date.now() - updatedTime <=
+            15 * 60 * 1000;
+
+        return {
+          id: profile.id,
+
+          username: profile.username,
+
+          displayName:
+            profile.display_name,
+
+          avatar:
+            profile.avatar ?? "🧑🏽",
+
+          level:
+            profile.level ?? 1,
+
+          experience:
+            profile.experience ?? 0,
+
+          reputation:
+            state?.reputation ??
+            profile.reputation ??
+            0,
+
+          cash:
+            Number(state?.cash ?? 0),
+
+          energy:
+            state?.energy ?? 0,
+
+          maxEnergy:
+            state?.max_energy ?? 100,
+
+          currentJobId:
+            state?.current_job_id ?? null,
+
+          jobExperience:
+            state?.job_experience ?? 0,
+
+          currentLocationId:
+            state?.current_location_id ??
+            profile.current_location_id ??
+            "garki",
+
+          isFrozen:
+            state?.is_frozen === true,
+
+          recentlyActive,
+
+          createdAt:
+            profile.created_at,
+
+          updatedAt,
+        };
+      }
+    );
 
     return NextResponse.json({
       players,
       total: players.length,
     });
-  } catch {
+  } catch (error) {
+    console.error(
+      "Admin players API error:",
+      error
+    );
+
     return NextResponse.json(
-      { error: "Admin access required." },
-      { status: 403 }
+      {
+        error: "Admin access required.",
+      },
+      {
+        status: 403,
+      }
     );
   }
 }
