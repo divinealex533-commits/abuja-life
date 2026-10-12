@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 interface Player {
@@ -7,20 +8,17 @@ interface Player {
   username: string;
   displayName: string;
   avatar: string;
-
   level: number;
   experience: number;
   reputation: number;
-
   cash: number;
-
   energy: number;
   maxEnergy: number;
-
   currentJobId: string | null;
   jobExperience: number;
   currentLocationId: string;
-
+  isFrozen: boolean;
+  recentlyActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,436 +32,658 @@ function formatMoney(value: number) {
 }
 
 function formatDate(value: string) {
-  if (!value) return "—";
-
-  return new Date(value).toLocaleString("en-NG", {
+  return new Intl.DateTimeFormat("en-NG", {
     dateStyle: "medium",
     timeStyle: "short",
-  });
+  }).format(new Date(value));
+}
+
+function locationLabel(location: string) {
+  return location
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
 }
 
 export default function AdminPlayersPage() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] =
+  const [players, setPlayers] =
+    useState<Player[]>([]);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [selectedPlayer, setSelectedPlayer] =
     useState<Player | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
-  const [error, setError] = useState("");
-
-  async function loadPlayers(
-    showRefresh = false
-  ) {
+  async function loadPlayers() {
     try {
-      if (showRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
+      setLoading(true);
       setError("");
 
-      const params = new URLSearchParams();
-
-      if (search.trim()) {
-        params.set("search", search.trim());
-      }
+      const query = search.trim()
+        ? `?search=${encodeURIComponent(
+            search.trim()
+          )}`
+        : "";
 
       const response = await fetch(
-        `/api/admin/players?${params.toString()}`,
+        `/api/admin/players${query}`,
         {
           cache: "no-store",
         }
       );
 
-      const result = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.error ?? "Failed to load players."
+          data.error ||
+            "Unable to load players."
         );
       }
 
-      setPlayers(result.players ?? []);
-
-      if (selected) {
-        const updated = (result.players ?? []).find(
-          (player: Player) =>
-            player.id === selected.id
-        );
-
-        setSelected(updated ?? null);
-      }
+      setPlayers(data.players ?? []);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to load players."
+          : "Unable to load players."
       );
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }
 
   useEffect(() => {
     loadPlayers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onlineCount = useMemo(() => {
-    const fiveMinutesAgo =
-      Date.now() - 5 * 60 * 1000;
+  const stats = useMemo(() => {
+    return {
+      total: players.length,
 
-    return players.filter(
-      (player) =>
-        new Date(player.updatedAt).getTime() >=
-        fiveMinutesAgo
-    ).length;
-  }, [players]);
+      active: players.filter(
+        (player) =>
+          player.recentlyActive &&
+          !player.isFrozen
+      ).length,
 
-  const totalCash = useMemo(
-    () =>
-      players.reduce(
-        (total, player) => total + player.cash,
+      frozen: players.filter(
+        (player) => player.isFrozen
+      ).length,
+
+      cash: players.reduce(
+        (total, player) =>
+          total + player.cash,
         0
       ),
-    [players]
-  );
+    };
+  }, [players]);
 
   return (
-    <div className="min-h-screen bg-[#050b0a] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#050b0a] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-400">
-              Admin Management
-            </p>
 
-            <h1 className="text-3xl font-black tracking-tight">
+        {/* HEADER */}
+
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Link
+              href="/admin"
+              className="text-xs font-bold text-orange-400 hover:text-orange-300"
+            >
+              ← Admin Dashboard
+            </Link>
+
+            <h1 className="mt-3 text-3xl font-black">
               Players
             </h1>
 
-            <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Manage Abuja Life players, inspect their
-              progression, economy, location and game
-              state.
+            <p className="mt-2 text-sm text-slate-500">
+              Monitor and manage every Abuja Life
+              player.
             </p>
           </div>
 
           <button
-            onClick={() => loadPlayers(true)}
-            disabled={refreshing}
-            className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black uppercase tracking-wider text-slate-300 transition hover:border-orange-500/30 hover:bg-orange-500/10 hover:text-white disabled:opacity-50"
+            onClick={loadPlayers}
+            disabled={loading}
+            className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black text-slate-300 transition hover:border-orange-500/30 hover:bg-orange-500/10 hover:text-white disabled:opacity-50"
           >
-            {refreshing ? "Refreshing..." : "↻ Refresh Players"}
+            ↻ Refresh Players
           </button>
         </div>
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-              Registered Players
+        {/* STATS */}
+
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+              Total Players
             </p>
+
             <p className="mt-2 text-3xl font-black">
-              {players.length}
+              {stats.total}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+          <div className="rounded-3xl border border-green-500/10 bg-green-500/[0.03] p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
               Recently Active
             </p>
+
             <p className="mt-2 text-3xl font-black text-green-400">
-              {onlineCount}
+              {stats.active}
+            </p>
+
+            <p className="mt-1 text-[10px] text-slate-600">
+              Active within 15 minutes
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-              Economy
+          <div className="rounded-3xl border border-red-500/10 bg-red-500/[0.03] p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+              Frozen
             </p>
+
+            <p className="mt-2 text-3xl font-black text-red-400">
+              {stats.frozen}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-orange-500/10 bg-orange-500/[0.03] p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+              Player Cash
+            </p>
+
             <p className="mt-2 text-2xl font-black text-orange-400">
-              {formatMoney(totalCash)}
+              {formatMoney(stats.cash)}
+            </p>
+
+            <p className="mt-1 text-[10px] text-slate-600">
+              Combined virtual balance
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-              Player System
-            </p>
-            <p className="mt-2 text-sm font-black text-green-400">
-              PERSISTENT
-            </p>
-          </div>
-        </div>
+        </section>
 
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-          <input
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                loadPlayers(true);
-              }
+        {/* SEARCH */}
+
+        <section className="mb-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              loadPlayers();
             }}
-            placeholder="Search username or player name..."
-            className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-orange-500/50"
-          />
-
-          <button
-            onClick={() => loadPlayers(true)}
-            className="rounded-xl bg-orange-500 px-6 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-orange-400"
+            className="flex flex-col gap-3 sm:flex-row"
           >
-            Search
-          </button>
-        </div>
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              placeholder="Search username or display name..."
+              className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
+            />
+
+            <button
+              type="submit"
+              className="rounded-xl bg-orange-500 px-7 py-3 text-xs font-black text-black transition hover:bg-orange-400"
+            >
+              Search
+            </button>
+          </form>
+        </section>
+
+        {/* ERROR */}
 
         {error && (
-          <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-300">
             {error}
           </div>
         )}
 
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[950px]">
-              <thead className="border-b border-white/10 bg-white/[0.03]">
-                <tr className="text-left">
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Player
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Level
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Cash
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Energy
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Reputation
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Location
-                  </th>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Action
-                  </th>
-                </tr>
-              </thead>
+        {/* PLAYER TABLE */}
 
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-5 py-12 text-center text-sm text-slate-600"
-                    >
-                      Loading players...
-                    </td>
+        <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+
+          <div className="border-b border-white/10 px-6 py-5">
+            <h2 className="font-black">
+              Player Management
+            </h2>
+
+            <p className="mt-1 text-xs text-slate-600">
+              Select a player to view their complete
+              game state and administrative controls.
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center text-sm text-slate-500">
+              Loading players...
+            </div>
+          ) : players.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="text-4xl">
+                👥
+              </div>
+
+              <p className="mt-4 font-black">
+                No players found
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Try another search.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1200px]">
+                <thead>
+                  <tr className="border-b border-white/10 text-left">
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Player
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Status
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Level / XP
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Cash
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Energy
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Reputation
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Location
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Updated
+                    </th>
+
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Manage
+                    </th>
+
                   </tr>
-                ) : players.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-5 py-12 text-center text-sm text-slate-600"
-                    >
-                      No players found.
-                    </td>
-                  </tr>
-                ) : (
-                  players.map((player) => (
+                </thead>
+
+                <tbody>
+                  {players.map((player) => (
                     <tr
                       key={player.id}
-                      className="border-b border-white/5 transition hover:bg-white/[0.03]"
+                      className="border-b border-white/5 transition hover:bg-white/[0.02]"
                     >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-xl">
+
+                      {/* PLAYER */}
+
+                      <td className="px-6 py-5">
+                        <button
+                          onClick={() =>
+                            setSelectedPlayer(
+                              player
+                            )
+                          }
+                          className="flex items-center gap-3 text-left"
+                        >
+                          <span className="text-2xl">
                             {player.avatar}
-                          </div>
+                          </span>
 
-                          <div>
-                            <p className="font-bold text-white">
-                              {player.displayName}
-                            </p>
+                          <span>
+                            <span className="block text-sm font-black hover:text-orange-400">
+                              {
+                                player.displayName
+                              }
+                            </span>
 
-                            <p className="text-xs text-slate-600">
+                            <span className="block text-[10px] text-slate-600">
                               @{player.username}
-                            </p>
-                          </div>
+                            </span>
+                          </span>
+                        </button>
+                      </td>
+
+                      {/* STATUS */}
+
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-2">
+
+                          {player.isFrozen ? (
+                            <span className="inline-flex w-fit rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase text-red-400">
+                              🔒 Frozen
+                            </span>
+                          ) : (
+                            <span className="inline-flex w-fit rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-[9px] font-black uppercase text-green-400">
+                              ● Active
+                            </span>
+                          )}
+
+                          {player.recentlyActive && (
+                            <span className="text-[9px] font-bold text-slate-600">
+                              Recently active
+                            </span>
+                          )}
+
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <span className="rounded-lg bg-orange-500/10 px-2.5 py-1 text-xs font-black text-orange-400">
-                          LVL {player.level}
+                      {/* LEVEL */}
+
+                      <td className="px-6 py-5">
+                        <div className="font-black">
+                          Lv. {player.level}
+                        </div>
+
+                        <div className="text-[10px] text-slate-600">
+                          {player.experience.toLocaleString()} XP
+                        </div>
+                      </td>
+
+                      {/* CASH */}
+
+                      <td className="px-6 py-5">
+                        <span className="font-black text-green-400">
+                          {formatMoney(
+                            player.cash
+                          )}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-sm font-bold text-green-400">
-                        {formatMoney(player.cash)}
+                      {/* ENERGY */}
+
+                      <td className="px-6 py-5">
+                        <div className="min-w-[90px]">
+
+                          <div className="flex justify-between text-[10px]">
+                            <span className="font-bold">
+                              {player.energy}
+                            </span>
+
+                            <span className="text-slate-600">
+                              / {player.maxEnergy}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-orange-500"
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.max(
+                                    0,
+                                    (player.energy /
+                                      Math.max(
+                                        1,
+                                        player.maxEnergy
+                                      )) *
+                                      100
+                                  )
+                                )}%`,
+                              }}
+                            />
+                          </div>
+
+                        </div>
                       </td>
 
-                      <td className="px-5 py-4 text-sm font-bold">
-                        {player.energy}/{player.maxEnergy}
+                      {/* REPUTATION */}
+
+                      <td className="px-6 py-5">
+                        <span className="font-black text-purple-400">
+                          {player.reputation.toLocaleString()}
+                        </span>
                       </td>
 
-                      <td className="px-5 py-4 text-sm font-bold">
-                        {player.reputation}
+                      {/* LOCATION */}
+
+                      <td className="px-6 py-5">
+                        <div className="text-xs font-bold text-slate-300">
+                          {locationLabel(
+                            player.currentLocationId
+                          )}
+                        </div>
+
+                        {player.currentJobId && (
+                          <div className="mt-1 text-[9px] text-slate-600">
+                            Job:{" "}
+                            {player.currentJobId}
+                          </div>
+                        )}
                       </td>
 
-                      <td className="px-5 py-4 text-sm font-bold capitalize text-slate-300">
-                        {player.currentLocationId}
+                      {/* UPDATED */}
+
+                      <td className="px-6 py-5">
+                        <div className="text-xs text-slate-400">
+                          {formatDate(
+                            player.updatedAt
+                          )}
+                        </div>
+
+                        <div className="mt-1 text-[9px] text-slate-600">
+                          {player.recentlyActive
+                            ? "Recently active"
+                            : "Not recently active"}
+                        </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <button
-                          onClick={() =>
-                            setSelected(player)
-                          }
-                          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-300 hover:border-orange-500/30 hover:bg-orange-500/10 hover:text-white"
+                      {/* MANAGE */}
+
+                      <td className="px-6 py-5">
+                        <Link
+                          href={`/admin/players/${player.id}`}
+                          className="inline-flex rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-400 transition hover:bg-orange-500/20"
                         >
-                          View
-                        </button>
+                          Manage →
+                        </Link>
                       </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        {selected && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
-            <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-[#07100e] shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* PLAYER QUICK VIEW */}
+
+        {selectedPlayer && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm"
+            onClick={() =>
+              setSelectedPlayer(null)
+            }
+          >
+            <div
+              className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#09110f] p-7 shadow-2xl"
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+            >
+
+              <div className="flex items-start justify-between gap-4">
+
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-3xl">
-                    {selected.avatar}
+                  <div className="text-4xl">
+                    {selectedPlayer.avatar}
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-black">
-                      {selected.displayName}
+                    <h2 className="text-2xl font-black">
+                      {
+                        selectedPlayer.displayName
+                      }
                     </h2>
-                    <p className="text-sm text-slate-600">
-                      @{selected.username}
+
+                    <p className="text-xs text-slate-600">
+                      @{selectedPlayer.username}
                     </p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setSelected(null)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:bg-red-500/10 hover:text-red-400"
+                  onClick={() =>
+                    setSelectedPlayer(null)
+                  }
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400 hover:text-white"
                 >
-                  ×
+                  ✕
                 </button>
+
               </div>
 
-              <div className="grid gap-4 p-6 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Player ID
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
+                    Status
                   </p>
-                  <p className="mt-2 break-all text-xs font-mono text-slate-300">
-                    {selected.id}
+
+                  <p
+                    className={`mt-2 font-black ${
+                      selectedPlayer.isFrozen
+                        ? "text-red-400"
+                        : "text-green-400"
+                    }`}
+                  >
+                    {selectedPlayer.isFrozen
+                      ? "🔒 Frozen"
+                      : "● Active"}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Level / XP
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
+                    Activity
                   </p>
-                  <p className="mt-2 text-lg font-black">
-                    {selected.level}
-                    <span className="ml-2 text-sm text-slate-500">
-                      {selected.experience} XP
-                    </span>
+
+                  <p className="mt-2 font-black">
+                    {selectedPlayer.recentlyActive
+                      ? "Recently Active"
+                      : "Not Recently Active"}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
                     Wallet
                   </p>
-                  <p className="mt-2 text-lg font-black text-green-400">
-                    {formatMoney(selected.cash)}
+
+                  <p className="mt-2 font-black text-green-400">
+                    {formatMoney(
+                      selectedPlayer.cash
+                    )}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
                     Energy
                   </p>
-                  <p className="mt-2 text-lg font-black">
-                    {selected.energy}
-                    <span className="text-sm text-slate-600">
-                      {" "}
-                      / {selected.maxEnergy}
-                    </span>
+
+                  <p className="mt-2 font-black">
+                    {selectedPlayer.energy} /{" "}
+                    {selectedPlayer.maxEnergy}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
+                    Level / XP
+                  </p>
+
+                  <p className="mt-2 font-black">
+                    Level{" "}
+                    {selectedPlayer.level}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-600">
+                    {selectedPlayer.experience.toLocaleString()} XP
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
                     Reputation
                   </p>
-                  <p className="mt-2 text-lg font-black text-orange-400">
-                    {selected.reputation}
+
+                  <p className="mt-2 font-black text-purple-400">
+                    {selectedPlayer.reputation.toLocaleString()}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
                     Location
                   </p>
-                  <p className="mt-2 text-lg font-black capitalize">
-                    {selected.currentLocationId}
+
+                  <p className="mt-2 font-black">
+                    {locationLabel(
+                      selectedPlayer.currentLocationId
+                    )}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
                     Current Job
                   </p>
-                  <p className="mt-2 text-sm font-bold text-slate-300">
-                    {selected.currentJobId ?? "No active job"}
+
+                  <p className="mt-2 font-black">
+                    {selectedPlayer.currentJobId ||
+                      "No active job"}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-                    Job XP
-                  </p>
-                  <p className="mt-2 text-lg font-black">
-                    {selected.jobExperience}
-                  </p>
-                </div>
               </div>
 
-              <div className="border-t border-white/10 px-6 py-5">
-                <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-600">
-                  <span>
-                    Joined {formatDate(selected.createdAt)}
-                  </span>
-                  <span>•</span>
-                  <span>
-                    Updated {formatDate(selected.updatedAt)}
-                  </span>
-                </div>
+              <div className="mt-6 flex flex-wrap gap-3">
+
+                <Link
+                  href={`/admin/players/${selectedPlayer.id}`}
+                  className="flex-1 rounded-xl bg-orange-500 px-5 py-3 text-center text-xs font-black text-black transition hover:bg-orange-400"
+                >
+                  Open Full Management
+                </Link>
+
+                <Link
+                  href={`/admin/player-actions?playerId=${selectedPlayer.id}`}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-center text-xs font-black text-slate-300 transition hover:bg-white/10 hover:text-white"
+                >
+                  View Action History
+                </Link>
+
               </div>
+
             </div>
           </div>
         )}
+
       </div>
-    </div>
+    </main>
   );
 }
