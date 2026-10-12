@@ -11,8 +11,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BUSINESSES } from "@/lib/game/businesses";
 
-const supabase = createClient();
-
 const LOCATIONS = [
   { id: "garki", name: "Garki" },
   { id: "wuse", name: "Wuse" },
@@ -24,6 +22,10 @@ const LOCATIONS = [
   { id: "kado", name: "Kado" },
   { id: "asokoro", name: "Asokoro" },
 ];
+
+function getSupabase() {
+  return createClient();
+}
 
 export default function PostBusinessContractPage() {
   const router = useRouter();
@@ -65,6 +67,8 @@ export default function PostBusinessContractPage() {
       try {
         setLoadingWallet(true);
         setError("");
+
+        const supabase = getSupabase();
 
         const {
           data: { user },
@@ -205,6 +209,8 @@ export default function PostBusinessContractPage() {
     try {
       setPosting(true);
 
+      const supabase = getSupabase();
+
       const {
         data,
         error: rpcError,
@@ -226,9 +232,7 @@ export default function PostBusinessContractPage() {
           p_experience_reward:
             Math.max(
               0,
-              Math.round(
-                numericExperience
-              )
+              Math.round(numericExperience)
             ),
         }
       );
@@ -313,7 +317,6 @@ export default function PostBusinessContractPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* HEADER */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link
@@ -352,7 +355,6 @@ export default function PostBusinessContractPage() {
           onSubmit={handleSubmit}
           className="space-y-6"
         >
-          {/* BUSINESS */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
             <h2 className="text-xl font-bold">
               1. Choose the type of work
@@ -418,7 +420,6 @@ export default function PostBusinessContractPage() {
             )}
           </section>
 
-          {/* DETAILS */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
             <h2 className="text-xl font-bold">
               2. Contract details
@@ -502,7 +503,6 @@ export default function PostBusinessContractPage() {
             </div>
           </section>
 
-          {/* REWARD */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
             <h2 className="text-xl font-bold">
               3. Set the reward
@@ -585,21 +585,18 @@ export default function PostBusinessContractPage() {
             </div>
           </section>
 
-          {/* ERRORS */}
           {error && (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
               {error}
             </div>
           )}
 
-          {/* SUCCESS */}
           {success && (
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
               {success}
             </div>
           )}
 
-          {/* ESCROW */}
           <section className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
             <h3 className="font-bold text-amber-300">
               🔐 Escrow protection
@@ -614,7 +611,6 @@ export default function PostBusinessContractPage() {
             </p>
           </section>
 
-          {/* SUBMIT */}
           <button
             type="submit"
             disabled={
