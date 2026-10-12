@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/client";
 import { BUSINESSES } from "@/lib/game/businesses";
 
@@ -27,36 +32,58 @@ export default function PostBusinessContractPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [locationId, setLocationId] = useState("garki");
-  const [reward, setReward] = useState("");
-  const [reputationReward, setReputationReward] = useState("5");
-  const [experienceReward, setExperienceReward] = useState("25");
 
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [loadingWallet, setLoadingWallet] = useState(true);
+  const [reward, setReward] = useState("");
+  const [reputationReward, setReputationReward] =
+    useState("5");
+  const [experienceReward, setExperienceReward] =
+    useState("25");
+
+  const [walletBalance, setWalletBalance] =
+    useState<number | null>(null);
+
+  const [loadingWallet, setLoadingWallet] =
+    useState(true);
+
   const [posting, setPosting] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const selectedBusiness = useMemo(
-    () => BUSINESSES.find((business) => business.id === businessId),
+    () =>
+      BUSINESSES.find(
+        (business) => business.id === businessId
+      ),
     [businessId]
   );
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadWallet() {
       try {
         setLoadingWallet(true);
+        setError("");
 
         const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
 
         if (!user) {
           router.push("/login");
           return;
         }
 
-        const { data, error: walletError } = await supabase
+        const {
+          data,
+          error: walletError,
+        } = await supabase
           .from("player_wallets")
           .select("balance")
           .eq("player_id", user.id)
@@ -66,61 +93,143 @@ export default function PostBusinessContractPage() {
           throw walletError;
         }
 
-        setWalletBalance(Number(data?.balance ?? 0));
+        if (!mounted) {
+          return;
+        }
+
+        setWalletBalance(
+          Number(data?.balance ?? 0)
+        );
       } catch (err) {
-        console.error(err);
-        setError("Unable to load your wallet.");
+        console.error(
+          "Load wallet error:",
+          err
+        );
+
+        if (mounted) {
+          setError(
+            "Unable to load your wallet."
+          );
+        }
       } finally {
-        setLoadingWallet(false);
+        if (mounted) {
+          setLoadingWallet(false);
+        }
       }
     }
 
-    loadWallet();
+    void loadWallet();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError("");
     setSuccess("");
 
     const numericReward = Number(reward);
-    const numericRep = Number(reputationReward);
-    const numericExperience = Number(experienceReward);
+    const numericRep = Number(
+      reputationReward
+    );
+    const numericExperience = Number(
+      experienceReward
+    );
 
     if (!businessId) {
-      setError("Please choose the business category.");
+      setError(
+        "Please choose the business category."
+      );
       return;
     }
 
     if (!title.trim()) {
-      setError("Please enter a contract title.");
+      setError(
+        "Please enter a contract title."
+      );
       return;
     }
 
     if (!description.trim()) {
-      setError("Please describe the work you need.");
+      setError(
+        "Please describe the work you need."
+      );
       return;
     }
 
-    if (!Number.isFinite(numericReward) || numericReward <= 0) {
-      setError("Enter a valid reward amount.");
+    if (
+      !Number.isFinite(numericReward) ||
+      numericReward <= 0
+    ) {
+      setError(
+        "Enter a valid reward amount."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(numericRep) ||
+      numericRep < 0
+    ) {
+      setError(
+        "Enter a valid reputation reward."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(numericExperience) ||
+      numericExperience < 0
+    ) {
+      setError(
+        "Enter a valid experience reward."
+      );
+      return;
+    }
+
+    if (
+      walletBalance !== null &&
+      numericReward > walletBalance
+    ) {
+      setError(
+        "You do not have enough money in your wallet to secure this contract."
+      );
       return;
     }
 
     try {
       setPosting(true);
 
-      const { data, error: rpcError } = await supabase.rpc(
+      const {
+        data,
+        error: rpcError,
+      } = await supabase.rpc(
         "create_player_business_contract",
         {
           p_business_id: businessId,
           p_title: title.trim(),
           p_description: description.trim(),
           p_location_id: locationId,
-          p_reward: numericReward,
-          p_reputation_reward: numericRep,
-          p_experience_reward: numericExperience,
+          p_reward: Math.round(
+            numericReward
+          ),
+          p_reputation_reward:
+            Math.max(
+              0,
+              Math.round(numericRep)
+            ),
+          p_experience_reward:
+            Math.max(
+              0,
+              Math.round(
+                numericExperience
+              )
+            ),
         }
       );
 
@@ -129,39 +238,66 @@ export default function PostBusinessContractPage() {
       }
 
       if (!data) {
-        throw new Error("The contract could not be created.");
-      }
-
-      const result = Array.isArray(data) ? data[0] : data;
-
-      if (result?.success === false) {
         throw new Error(
-          result.message || "The contract could not be created."
+          "The contract could not be created."
         );
       }
 
-      setSuccess(
-        `Contract posted successfully! ₦${numericReward.toLocaleString()} has been secured in escrow.`
-      );
+      const result = Array.isArray(data)
+        ? data[0]
+        : data;
 
-      setWalletBalance(
-        result?.wallet_balance !== undefined
-          ? Number(result.wallet_balance)
+      if (!result) {
+        throw new Error(
+          "The contract could not be created."
+        );
+      }
+
+      if (
+        result?.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "The contract could not be created."
+        );
+      }
+
+      const newWalletBalance =
+        result?.wallet_balance !==
+        undefined
+          ? Number(
+              result.wallet_balance
+            )
           : Math.max(
               0,
-              (walletBalance ?? numericReward) - numericReward
-            )
+              (walletBalance ?? 0) -
+                numericReward
+            );
+
+      setWalletBalance(
+        newWalletBalance
+      );
+
+      setSuccess(
+        `Contract posted successfully! ₦${Math.round(
+          numericReward
+        ).toLocaleString()} has been secured in escrow.`
       );
 
       setTitle("");
       setDescription("");
       setReward("");
 
-      setTimeout(() => {
-        router.push("/business-contracts");
+      window.setTimeout(() => {
+        router.push(
+          "/business-contracts"
+        );
       }, 1400);
     } catch (err) {
-      console.error("Post contract error:", err);
+      console.error(
+        "Post contract error:",
+        err
+      );
 
       const message =
         err instanceof Error
@@ -177,6 +313,7 @@ export default function PostBusinessContractPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {/* HEADER */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link
@@ -191,7 +328,8 @@ export default function PostBusinessContractPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-400">
-              Hire another player to complete work for you.
+              Hire another player to complete
+              work for you.
             </p>
           </div>
 
@@ -203,61 +341,88 @@ export default function PostBusinessContractPage() {
             <p className="mt-1 text-xl font-black text-emerald-400">
               {loadingWallet
                 ? "Loading..."
-                : `₦${(walletBalance ?? 0).toLocaleString()}`}
+                : `₦${(
+                    walletBalance ?? 0
+                  ).toLocaleString()}`}
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
+          {/* BUSINESS */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
-            <h2 className="text-xl font-bold">1. Choose the type of work</h2>
+            <h2 className="text-xl font-bold">
+              1. Choose the type of work
+            </h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              What kind of player or business do you need?
+              What kind of player or business
+              do you need?
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {BUSINESSES.map((business) => {
-                const selected = businessId === business.id;
+              {BUSINESSES.map(
+                (business) => {
+                  const selected =
+                    businessId ===
+                    business.id;
 
-                return (
-                  <button
-                    key={business.id}
-                    type="button"
-                    onClick={() => setBusinessId(business.id)}
-                    className={`rounded-2xl border p-4 text-left transition ${
-                      selected
-                        ? "border-emerald-400 bg-emerald-400/10"
-                        : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.06]"
-                    }`}
-                  >
-                    <div className="text-2xl">
-  💼
-</div>
+                  return (
+                    <button
+                      key={business.id}
+                      type="button"
+                      onClick={() =>
+                        setBusinessId(
+                          business.id
+                        )
+                      }
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        selected
+                          ? "border-emerald-400 bg-emerald-400/10"
+                          : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <div className="text-2xl">
+                        💼
+                      </div>
 
-                    <div className="mt-3 font-bold">
-                      {business.name}
-                    </div>
+                      <div className="mt-3 font-bold">
+                        {business.name}
+                      </div>
 
-                    {business.description && (
-                      <p className="mt-1 text-xs leading-5 text-slate-400">
-                        {business.description}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
+                      {business.description && (
+                        <p className="mt-1 text-xs leading-5 text-slate-400">
+                          {
+                            business.description
+                          }
+                        </p>
+                      )}
+                    </button>
+                  );
+                }
+              )}
             </div>
 
             {selectedBusiness && (
               <div className="mt-4 rounded-2xl bg-emerald-500/10 p-4 text-sm text-emerald-300">
-                Selected: <strong>{selectedBusiness.name}</strong>
+                Selected:{" "}
+                <strong>
+                  {
+                    selectedBusiness.name
+                  }
+                </strong>
               </div>
             )}
           </section>
 
+          {/* DETAILS */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
-            <h2 className="text-xl font-bold">2. Contract details</h2>
+            <h2 className="text-xl font-bold">
+              2. Contract details
+            </h2>
 
             <div className="mt-5 space-y-5">
               <div>
@@ -267,7 +432,11 @@ export default function PostBusinessContractPage() {
 
                 <input
                   value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  onChange={(event) =>
+                    setTitle(
+                      event.target.value
+                    )
+                  }
                   placeholder="Example: Design my restaurant interior"
                   maxLength={120}
                   className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400"
@@ -282,7 +451,9 @@ export default function PostBusinessContractPage() {
                 <textarea
                   value={description}
                   onChange={(event) =>
-                    setDescription(event.target.value)
+                    setDescription(
+                      event.target.value
+                    )
                   }
                   placeholder="Explain exactly what you want the other player to do..."
                   rows={6}
@@ -291,7 +462,8 @@ export default function PostBusinessContractPage() {
                 />
 
                 <p className="mt-1 text-right text-xs text-slate-600">
-                  {description.length}/2000
+                  {description.length}
+                  /2000
                 </p>
               </div>
 
@@ -302,25 +474,44 @@ export default function PostBusinessContractPage() {
 
                 <select
                   value={locationId}
-                  onChange={(event) => setLocationId(event.target.value)}
+                  onChange={(event) =>
+                    setLocationId(
+                      event.target.value
+                    )
+                  }
                   className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-emerald-400"
                 >
-                  {LOCATIONS.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name}
-                    </option>
-                  ))}
+                  {LOCATIONS.map(
+                    (location) => (
+                      <option
+                        key={
+                          location.id
+                        }
+                        value={
+                          location.id
+                        }
+                      >
+                        {
+                          location.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             </div>
           </section>
 
+          {/* REWARD */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
-            <h2 className="text-xl font-bold">3. Set the reward</h2>
+            <h2 className="text-xl font-bold">
+              3. Set the reward
+            </h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              The reward will be locked in escrow immediately when you post
-              the contract.
+              The reward will be locked in
+              escrow immediately when you
+              post the contract.
             </p>
 
             <div className="mt-5 grid gap-5 sm:grid-cols-3">
@@ -339,7 +530,11 @@ export default function PostBusinessContractPage() {
                     min="1"
                     step="1"
                     value={reward}
-                    onChange={(event) => setReward(event.target.value)}
+                    onChange={(event) =>
+                      setReward(
+                        event.target.value
+                      )
+                    }
                     placeholder="5000"
                     className="w-full rounded-2xl border border-white/10 bg-black/30 py-3 pl-9 pr-4 text-white outline-none focus:border-emerald-400"
                   />
@@ -355,9 +550,13 @@ export default function PostBusinessContractPage() {
                   type="number"
                   min="0"
                   max="100"
-                  value={reputationReward}
+                  value={
+                    reputationReward
+                  }
                   onChange={(event) =>
-                    setReputationReward(event.target.value)
+                    setReputationReward(
+                      event.target.value
+                    )
                   }
                   className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-400"
                 />
@@ -372,9 +571,13 @@ export default function PostBusinessContractPage() {
                   type="number"
                   min="0"
                   max="1000"
-                  value={experienceReward}
+                  value={
+                    experienceReward
+                  }
                   onChange={(event) =>
-                    setExperienceReward(event.target.value)
+                    setExperienceReward(
+                      event.target.value
+                    )
                   }
                   className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-400"
                 />
@@ -382,33 +585,46 @@ export default function PostBusinessContractPage() {
             </div>
           </section>
 
+          {/* ERRORS */}
           {error && (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
               {error}
             </div>
           )}
 
+          {/* SUCCESS */}
           {success && (
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
               {success}
             </div>
           )}
 
+          {/* ESCROW */}
           <section className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
             <h3 className="font-bold text-amber-300">
               🔐 Escrow protection
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Your reward is locked when the contract is created. The worker
-              receives the payment only after the contract is successfully
-              completed.
+              Your reward is locked when
+              the contract is created. The
+              worker receives the payment only
+              after the contract is
+              successfully completed.
             </p>
           </section>
 
+          {/* SUBMIT */}
           <button
             type="submit"
-            disabled={posting || loadingWallet}
+            disabled={
+              posting ||
+              loadingWallet ||
+              !businessId ||
+              !title.trim() ||
+              !description.trim() ||
+              !reward
+            }
             className="w-full rounded-2xl bg-emerald-500 px-6 py-4 text-base font-black text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {posting
