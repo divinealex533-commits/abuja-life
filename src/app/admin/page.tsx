@@ -314,6 +314,25 @@ export default function AdminPage() {
               </div>
             </Link>
           ))}
+          <Link
+  href="/admin/payments"
+  className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-green-500/30 hover:bg-green-500/[0.05]"
+>
+  <div className="text-2xl">💳</div>
+
+  <h3 className="mt-4 font-black">
+    Payments & Settlements
+  </h3>
+
+  <p className="mt-1 text-xs leading-5 text-slate-500">
+    Monitor customer payments, Paystack transactions,
+    settlements and business payment status.
+  </p>
+
+  <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-green-400">
+    Open Payments Center →
+  </div>
+</Link>
         </div>
       </section>
 
