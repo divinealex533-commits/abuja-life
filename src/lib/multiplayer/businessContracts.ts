@@ -29,7 +29,9 @@ export interface PlayerBusinessContract {
   completedAt: string | null;
 }
 
-const supabase = createClient();
+function getSupabase() {
+  return createClient();
+}
 
 function mapContract(
   row: Record<string, unknown>
@@ -78,6 +80,8 @@ function mapContract(
 export async function getOpenBusinessContracts(): Promise<
   PlayerBusinessContract[]
 > {
+  const supabase = getSupabase();
+
   const { data, error } = await supabase
     .from("player_business_contracts")
     .select("*")
@@ -96,6 +100,8 @@ export async function getOpenBusinessContracts(): Promise<
 export async function getMyBusinessContracts(): Promise<
   PlayerBusinessContract[]
 > {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -137,6 +143,8 @@ export async function createPlayerBusinessContract(
   locationId?: string,
   missionId?: string
 ): Promise<PlayerBusinessContract> {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -196,6 +204,8 @@ export async function createPlayerBusinessContract(
 export async function acceptBusinessContract(
   contractId: string
 ): Promise<PlayerBusinessContract> {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -232,6 +242,8 @@ export async function acceptBusinessContract(
 export async function startBusinessContract(
   contractId: string
 ): Promise<PlayerBusinessContract> {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -272,6 +284,8 @@ export async function completeBusinessContract(
   reward: number;
   workerBalance: number;
 }> {
+  const supabase = getSupabase();
+
   const { data, error } = await supabase.rpc(
     "complete_player_business_contract",
     {
@@ -284,7 +298,9 @@ export async function completeBusinessContract(
   }
 
   if (!data) {
-    throw new Error("The contract payment could not be completed.");
+    throw new Error(
+      "The contract payment could not be completed."
+    );
   }
 
   return {
@@ -299,6 +315,8 @@ export async function completeBusinessContract(
 export async function cancelBusinessContract(
   contractId: string
 ): Promise<PlayerBusinessContract> {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -337,6 +355,8 @@ export async function subscribeToBusinessContracts(
     contract: PlayerBusinessContract
   ) => void
 ) {
+  const supabase = getSupabase();
+
   const channel = supabase
     .channel(
       `business-contracts-${Date.now()}`
@@ -360,7 +380,7 @@ export async function subscribeToBusinessContracts(
     )
     .subscribe();
 
- return () => {
-  void supabase.removeChannel(channel);
-};
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }
