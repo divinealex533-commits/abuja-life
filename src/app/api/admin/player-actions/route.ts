@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/access";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   try {
     await requireAdmin();
 
-    const supabase = await createServerSupabaseClient();
+    const supabase =
+      await createServerSupabaseClient();
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } =
+      new URL(request.url);
 
     const playerId =
       searchParams.get("playerId")?.trim() ?? "";
@@ -17,12 +19,17 @@ export async function GET(request: Request) {
     const action =
       searchParams.get("action")?.trim() ?? "";
 
-    const limitParam = Number(
+    const requestedLimit = Number(
       searchParams.get("limit") ?? "200"
     );
 
     const limit = Math.min(
-      Math.max(Number.isFinite(limitParam) ? limitParam : 200, 1),
+      Math.max(
+        Number.isFinite(requestedLimit)
+          ? Math.floor(requestedLimit)
+          : 200,
+        1
+      ),
       500
     );
 
@@ -31,11 +38,13 @@ export async function GET(request: Request) {
       .select(
         `
         id,
-        admin_user_id,
-        target_user_id,
+        player_id,
+        admin_id,
         action,
         reason,
         amount,
+        before_value,
+        after_value,
         metadata,
         created_at
         `
@@ -47,16 +56,22 @@ export async function GET(request: Request) {
 
     if (playerId) {
       query = query.eq(
-        "target_user_id",
+        "player_id",
         playerId
       );
     }
 
     if (action) {
-      query = query.eq("action", action);
+      query = query.eq(
+        "action",
+        action
+      );
     }
 
-    const { data, error } = await query;
+    const {
+      data: actions,
+      error,
+    } = await query;
 
     if (error) {
       return NextResponse.json(
@@ -69,56 +84,52 @@ export async function GET(request: Request) {
       );
     }
 
-    const actions = data ?? [];
+    const rows = actions ?? [];
 
     const playerIds = Array.from(
       new Set(
-        actions
-          .map((item) => item.target_user_id)
+        rows
+          .map((item) => item.player_id)
           .filter(Boolean)
       )
     );
 
-    const adminIds = Array.from(
-      new Set(
-        actions
-          .map((item) => item.admin_user_id)
-          .filter(Boolean)
-      )
-    );
-
-    let players: any[] = [];
-    let admins: any[] = [];
+    let players: Array<{
+      id: string;
+      username: string;
+      display_name: string;
+      avatar: string;
+    }> = [];
 
     if (playerIds.length > 0) {
-      const { data: playerProfiles } =
-        await supabase
-          .from("player_profiles")
-          .select(
-            `
-            id,
-            username,
-            display_name,
-            avatar
-            `
-          )
-          .in("id", playerIds);
+      const {
+        data: playerProfiles,
+        error: playerError,
+      } = await supabase
+        .from("player_profiles")
+        .select(
+          `
+          id,
+          username,
+          display_name,
+          avatar
+          `
+        )
+        .in("id", playerIds);
 
-      players = playerProfiles ?? [];
-    }
-
-    if (adminIds.length > 0) {
-      const { data: adminUsers } =
-        await supabase.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000,
-        });
-
-      if (!adminUsers.error) {
-        admins = (adminUsers.users ?? []).filter(
-          (user) => adminIds.includes(user.id)
+      if (playerError) {
+        return NextResponse.json(
+          {
+            error:
+              playerError.message,
+          },
+          {
+            status: 500,
+          }
         );
       }
+
+      players = playerProfiles ?? [];
     }
 
     const playerMap = new Map(
@@ -128,21 +139,13 @@ export async function GET(request: Request) {
       ])
     );
 
-    const adminMap = new Map(
-      admins.map((admin) => [
-        admin.id,
-        admin,
-      ])
-    );
-
-    const result = actions.map((item) => {
+    const result = rows.map((item) => {
       const player = playerMap.get(
-        item.target_user_id
+        item.player_id
       );
 
-      const admin = adminMap.get(
-        item.admin_user_id
-      );
+      const adminId =
+        item.admin_id ?? null;
 
       return {
         id: item.id,
@@ -151,32 +154,48 @@ export async function GET(request: Request) {
 
         reason: item.reason,
 
-        amount: item.amount,
+        amount:
+          item.amount === null
+            ? null
+            : Number(item.amount),
 
-        metadata: item.metadata ?? {},
+        beforeValue:
+          item.before_value ?? {},
 
-        createdAt: item.created_at,
+        afterValue:
+          item.after_value ?? {},
+
+        metadata:
+          item.metadata ?? {},
+
+        createdAt:
+          item.created_at,
 
         player: {
-          id: item.target_user_id,
+          id: item.player_id,
 
           username:
-            player?.username ?? "Unknown",
+            player?.username ??
+            "Unknown",
 
           displayName:
             player?.display_name ??
             "Unknown Player",
 
           avatar:
-            player?.avatar ?? "🧑🏽",
+            player?.avatar ??
+            "🧑🏽",
         },
 
         admin: {
-          id: item.admin_user_id,
+          id: adminId,
 
-          email:
-            admin?.email ??
-            "Administrator",
+          email: adminId
+            ? `Administrator • ${adminId.slice(
+                0,
+                8
+              )}`
+            : "Administrator",
         },
       };
     });
@@ -193,7 +212,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Admin access required.",
+        error:
+          "Admin access required.",
       },
       {
         status: 403,
