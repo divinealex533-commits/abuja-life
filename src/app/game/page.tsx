@@ -48,6 +48,7 @@ import VehicleDrivingGame from "@/components/game/VehicleDrivingGame";
 
 import Link from "next/link";
 import NotificationBell from "@/components/game/NotificationBell";
+import AnnouncementBanner from "@/components/announcements/AnnouncementBanner";
 
 import {
   DEFAULT_CITY_STATE,
@@ -521,9 +522,12 @@ const cityActivities = [
             </div>
           </div>
         )}
-      </nav>
+       </nav>
 
-      {/* LIVE CITY HUD */}
+{/* ADMIN ANNOUNCEMENTS */}
+<AnnouncementBanner />
+
+{/* LIVE CITY HUD */}
       <section className="mx-auto max-w-7xl px-4 pt-6">
         <div className="overflow-hidden rounded-3xl border border-emerald-400/20 bg-gradient-to-br from-[#10241e] via-[#0b1916] to-[#07110f] shadow-2xl">
           <div className="border-b border-white/10 px-5 py-4 md:px-6">
