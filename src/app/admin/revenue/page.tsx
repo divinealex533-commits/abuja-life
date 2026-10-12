@@ -451,7 +451,7 @@ export default function AdminRevenuePage() {
               </thead>
 
               <tbody>
-                {data.events.map((event) => (
+                {data?.events?.map((event) => (
                   <tr
                     key={event.id}
                     className="border-b border-white/5 last:border-0"
