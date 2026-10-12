@@ -24,7 +24,9 @@ export const DEFAULT_PLAYER_STATE: PlayerGameState = {
 
 const PLAYER_STORAGE_KEY = "abujaLifePlayerState";
 
-const supabase = createClient();
+function getSupabase() {
+  return createClient();
+}
 
 function normalizeState(
   value: Partial<PlayerGameState> | null | undefined
@@ -117,6 +119,8 @@ export function savePlayerState(
  * using the existing local state where possible.
  */
 export async function loadPersistentPlayerState(): Promise<PlayerGameState> {
+  const supabase = getSupabase();
+
   const {
     data: { user },
     error: userError,
@@ -210,6 +214,8 @@ export async function loadPersistentPlayerState(): Promise<PlayerGameState> {
 export async function savePersistentPlayerState(
   player: PlayerGameState
 ): Promise<boolean> {
+  const supabase = getSupabase();
+
   const normalized = normalizeState(player);
 
   savePlayerState(normalized);
@@ -255,6 +261,8 @@ export async function savePersistentPlayerState(
 }
 
 export async function resetPersistentPlayerState(): Promise<void> {
+  const supabase = getSupabase();
+
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem(PLAYER_STORAGE_KEY);
@@ -344,6 +352,7 @@ export function completeJob(
 ): PlayerGameState {
   return {
     ...player,
+
     cash:
       player.cash + Math.max(0, reward),
 
