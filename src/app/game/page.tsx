@@ -18,6 +18,8 @@ import DailyRewardPanel from "@/components/game/DailyRewardPanel";
 
 import NPCInteractionPanel from "@/components/game/NPCInteractionPanel";
 
+import PlayerFreezeGuard from "@/components/game/PlayerFreezeGuard";
+
 import { updatePlayerLocation } from "@/lib/multiplayer/presence";
 import { ensureMyProfile } from "@/lib/multiplayer/profile";
 
@@ -440,8 +442,10 @@ const cityActivities = [
 ];
 
   return (
-    <main className="min-h-screen bg-[#07110f] text-white">
-      {/* TOP NAVIGATION */}
+  <main className="min-h-screen bg-[#07110f] text-white">
+    <PlayerFreezeGuard />
+
+    {/* TOP NAVIGATION */}
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110f]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
