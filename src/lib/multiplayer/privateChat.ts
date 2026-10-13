@@ -61,37 +61,44 @@ export async function sendPrivateMessage(
   recipientId: string,
   message: string
 ): Promise<PrivateMessage> {
-  const senderId = await getCurrentUserId();
-
   const cleanMessage = message.trim();
 
   if (!cleanMessage) {
     throw new Error("Message cannot be empty.");
   }
 
-  const { data, error } = await supabase
-    .from("private_messages")
-    .insert({
-      sender_id: senderId,
-      recipient_id: recipientId,
-      message: cleanMessage,
-    })
-    .select(
-      "id, sender_id, recipient_id, message, created_at"
-    )
-    .single();
+  const response = await fetch(
+    "/api/multiplayer/messages",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        recipientId,
+        message: cleanMessage,
+      }),
+    }
+  );
 
-  if (error) {
-    throw error;
+  const data = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+        "Unable to send message."
+    );
   }
 
-  return {
-    id: data.id,
-    senderId: data.sender_id,
-    recipientId: data.recipient_id,
-    message: data.message,
-    createdAt: data.created_at,
-  };
+  if (!data?.message) {
+    throw new Error(
+      "Invalid message response."
+    );
+  }
+
+  return data.message;
 }
 
 export function subscribeToPrivateMessages(
