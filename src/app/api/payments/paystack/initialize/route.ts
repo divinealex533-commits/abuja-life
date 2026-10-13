@@ -69,6 +69,48 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+     * Check the global Admin payment switch
+     * BEFORE creating a transaction or contacting Paystack.
+     *
+     * Service-role access is server-side only.
+     */
+    const adminSupabase =
+      createAdminSupabaseClient();
+
+    const { data: gameSettings, error: settingsError } =
+      await adminSupabase
+        .from("admin_game_settings")
+        .select("payments_enabled")
+        .eq("id", 1)
+        .single();
+
+    if (settingsError) {
+      console.error(
+        "Payment settings lookup error:",
+        settingsError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Payment settings could not be verified. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
+    if (gameSettings?.payments_enabled !== true) {
+      return NextResponse.json(
+        {
+          error:
+            "Payments are currently disabled by Abuja Life administration.",
+          code: "PAYMENTS_DISABLED",
+        },
+        { status: 503 }
+      );
+    }
+
     const secretKey =
       process.env.PAYSTACK_SECRET_KEY?.trim();
 
@@ -163,9 +205,6 @@ export async function POST(request: Request) {
      * Service-role client is used ONLY on the server.
      * Never expose this key to the browser.
      */
-    const adminSupabase =
-      createAdminSupabaseClient();
-
     const { error: insertError } =
       await adminSupabase
         .from("payment_transactions")
