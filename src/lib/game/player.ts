@@ -211,6 +211,7 @@ export async function loadPersistentPlayerState(): Promise<PlayerGameState> {
 /**
  * Save the player's complete game state to Supabase.
  */
+
 export async function savePersistentPlayerState(
   player: PlayerGameState
 ): Promise<boolean> {
@@ -218,6 +219,10 @@ export async function savePersistentPlayerState(
 
   const normalized = normalizeState(player);
 
+  /*
+   * Keep the local state synchronized first.
+   * The database remains the authoritative persistent state.
+   */
   savePlayerState(normalized);
 
   const {
@@ -249,6 +254,36 @@ export async function savePersistentPlayerState(
     );
 
   if (error) {
+    /*
+     * Admin Settings → Economy OFF
+     *
+     * The database trigger rejects player cash changes
+     * with this specific error.
+     */
+    if (
+      error.message.includes(
+        "ECONOMY_DISABLED"
+      )
+    ) {
+      console.warn(
+        "Economy is currently disabled by Abuja Life administration."
+      );
+
+      return false;
+    }
+
+    if (
+      error.message.includes(
+        "ECONOMY_SETTINGS_UNAVAILABLE"
+      )
+    ) {
+      console.error(
+        "Economy settings could not be verified."
+      );
+
+      return false;
+    }
+
     console.error(
       "Failed to save persistent player state:",
       error.message
