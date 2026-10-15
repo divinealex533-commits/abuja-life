@@ -1,18 +1,38 @@
 import { NextResponse } from "next/server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/access";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+
+const ALLOWED_PRIORITIES = new Set([
+  "normal",
+  "important",
+  "urgent",
+]);
+
+const MAX_TITLE_LENGTH = 120;
+const MAX_MESSAGE_LENGTH = 1000;
 
 export async function GET() {
   try {
     await requireAdmin();
 
-    const supabase =
-      await createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     const { data, error } = await supabase
       .from("admin_announcements")
-      .select("*")
+      .select(
+        `
+          id,
+          title,
+          message,
+          type,
+          priority,
+          is_active,
+          created_by,
+          created_at,
+          expires_at
+        `
+      )
       .order("created_at", {
         ascending: false,
       })
@@ -26,7 +46,8 @@ export async function GET() {
 
       return NextResponse.json(
         {
-          error: error.message,
+          error:
+            "Unable to load announcements.",
         },
         {
           status: 500,
@@ -34,9 +55,20 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({
-      announcements: data ?? [],
-    });
+    return NextResponse.json(
+      {
+        announcements: data ?? [],
+        count: data?.length ?? 0,
+        generatedAt:
+          new Date().toISOString(),
+      },
+      {
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error(
       "Admin announcement access error:",
@@ -45,7 +77,8 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error: "Admin access required.",
+        error:
+          "Admin access required.",
       },
       {
         status: 403,
@@ -60,7 +93,21 @@ export async function POST(
   try {
     const admin = await requireAdmin();
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const title = String(
       body.title ?? ""
@@ -71,8 +118,10 @@ export async function POST(
     ).trim();
 
     const priority =
-      body.priority === "urgent" ||
-      body.priority === "important"
+      typeof body.priority === "string" &&
+      ALLOWED_PRIORITIES.has(
+        body.priority
+      )
         ? body.priority
         : "normal";
 
@@ -88,11 +137,11 @@ export async function POST(
       );
     }
 
-    if (title.length > 120) {
+    if (title.length > MAX_TITLE_LENGTH) {
       return NextResponse.json(
         {
           error:
-            "Title cannot exceed 120 characters.",
+            `Title cannot exceed ${MAX_TITLE_LENGTH} characters.`,
         },
         {
           status: 400,
@@ -100,11 +149,14 @@ export async function POST(
       );
     }
 
-    if (message.length > 1000) {
+    if (
+      message.length >
+      MAX_MESSAGE_LENGTH
+    ) {
       return NextResponse.json(
         {
           error:
-            "Message cannot exceed 1000 characters.",
+            `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters.`,
         },
         {
           status: 400,
@@ -112,19 +164,38 @@ export async function POST(
       );
     }
 
+    /*
+     * Admin authorization is checked above first.
+     * The service-role client is then used for the
+     * database write so public announcement RLS does
+     * not accidentally block legitimate admin actions.
+     */
     const supabase =
-      await createServerSupabaseClient();
+      createAdminSupabaseClient();
 
     const { data, error } = await supabase
       .from("admin_announcements")
       .insert({
         title,
         message,
+        type: "info",
         priority,
         is_active: true,
         created_by: admin.id,
       })
-      .select()
+      .select(
+        `
+          id,
+          title,
+          message,
+          type,
+          priority,
+          is_active,
+          created_by,
+          created_at,
+          expires_at
+        `
+      )
       .single();
 
     if (error) {
@@ -135,7 +206,8 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error: error.message,
+          error:
+            "Unable to create announcement.",
         },
         {
           status: 500,
@@ -150,6 +222,10 @@ export async function POST(
       },
       {
         status: 201,
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+        },
       }
     );
   } catch (error) {
@@ -160,7 +236,8 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: "Admin access required.",
+        error:
+          "Admin access required.",
       },
       {
         status: 403,
