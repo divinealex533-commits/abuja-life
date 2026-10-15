@@ -3,15 +3,83 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/access";
 
+function safeNumber(
+  value: unknown,
+  fallback = 0
+) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : fallback;
+}
+
+function safeDate(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const time = new Date(value).getTime();
+
+  return Number.isFinite(time)
+    ? value
+    : null;
+}
+
 export async function GET(request: Request) {
   try {
     await requireAdmin();
 
-    const supabase = await createServerSupabaseClient();
+    const supabase =
+      await createServerSupabaseClient();
 
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search")?.trim() ?? "";
+    const { searchParams } =
+      new URL(request.url);
 
+    const search =
+      searchParams.get("search")?.trim() ?? "";
+
+    /*
+     * ---------------------------------------------------------
+     * TOTAL PLAYER COUNT
+     * ---------------------------------------------------------
+     *
+     * This count is deliberately separate from the search
+     * query so the Admin UI can always know the real number
+     * of registered player profiles.
+     */
+    const {
+      count: totalPlayerCount,
+      error: totalCountError,
+    } = await supabase
+      .from("player_profiles")
+      .select("id", {
+        count: "exact",
+        head: true,
+      });
+
+    if (totalCountError) {
+      console.error(
+        "Admin player count error:",
+        totalCountError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to determine total player count.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * PLAYER PROFILES
+     * ---------------------------------------------------------
+     */
     let profileQuery = supabase
       .from("player_profiles")
       .select(
@@ -34,6 +102,9 @@ export async function GET(request: Request) {
       .limit(500);
 
     if (search) {
+      /*
+       * Search username and display name.
+       */
       profileQuery = profileQuery.or(
         `username.ilike.%${search}%,display_name.ilike.%${search}%`
       );
@@ -45,6 +116,11 @@ export async function GET(request: Request) {
     } = await profileQuery;
 
     if (profileError) {
+      console.error(
+        "Admin player profile error:",
+        profileError
+      );
+
       return NextResponse.json(
         {
           error: profileError.message,
@@ -55,10 +131,15 @@ export async function GET(request: Request) {
       );
     }
 
-    const playerIds = (profiles ?? []).map(
-      (player) => player.id
-    );
+    const playerIds = (
+      profiles ?? []
+    ).map((player) => player.id);
 
+    /*
+     * ---------------------------------------------------------
+     * GAME STATES
+     * ---------------------------------------------------------
+     */
     let gameStates: Array<{
       user_id: string;
       cash: number;
@@ -95,6 +176,11 @@ export async function GET(request: Request) {
         .in("user_id", playerIds);
 
       if (stateError) {
+        console.error(
+          "Admin player game-state error:",
+          stateError
+        );
+
         return NextResponse.json(
           {
             error: stateError.message,
@@ -115,58 +201,118 @@ export async function GET(request: Request) {
       ])
     );
 
+    /*
+     * ---------------------------------------------------------
+     * BUILD ADMIN PLAYER RECORDS
+     * ---------------------------------------------------------
+     */
+    const now = Date.now();
+
     const players = (profiles ?? []).map(
       (profile) => {
-        const state = stateMap.get(profile.id);
+        const state =
+          stateMap.get(profile.id);
+
+        /*
+         * Use the newest timestamp between the
+         * profile and persistent game state.
+         */
+        const profileTime =
+          safeDate(profile.updated_at);
+
+        const stateTime =
+          safeDate(state?.updated_at);
+
+        const profileTimestamp =
+          profileTime
+            ? new Date(profileTime).getTime()
+            : 0;
+
+        const stateTimestamp =
+          stateTime
+            ? new Date(stateTime).getTime()
+            : 0;
+
+        const newestTimestamp =
+          Math.max(
+            profileTimestamp,
+            stateTimestamp
+          );
 
         const updatedAt =
-          state?.updated_at ??
-          profile.updated_at;
-
-        const updatedTime =
-          new Date(updatedAt).getTime();
+          newestTimestamp > 0
+            ? new Date(
+                newestTimestamp
+              ).toISOString()
+            : new Date().toISOString();
 
         const recentlyActive =
-          Number.isFinite(updatedTime) &&
-          Date.now() - updatedTime <=
+          newestTimestamp > 0 &&
+          now - newestTimestamp <=
             15 * 60 * 1000;
 
         return {
           id: profile.id,
 
-          username: profile.username,
+          username:
+            profile.username ?? "unknown",
 
           displayName:
-            profile.display_name,
+            profile.display_name ??
+            "Unnamed Player",
 
           avatar:
-            profile.avatar ?? "🧑🏽",
+            profile.avatar ?? "🧑🏾",
 
           level:
-            profile.level ?? 1,
+            safeNumber(
+              profile.level,
+              1
+            ),
 
           experience:
-            profile.experience ?? 0,
+            safeNumber(
+              profile.experience,
+              0
+            ),
 
           reputation:
-            state?.reputation ??
-            profile.reputation ??
-            0,
+            safeNumber(
+              state?.reputation ??
+                profile.reputation,
+              0
+            ),
 
           cash:
-            Number(state?.cash ?? 0),
+            safeNumber(
+              state?.cash,
+              0
+            ),
 
           energy:
-            state?.energy ?? 0,
+            safeNumber(
+              state?.energy,
+              0
+            ),
 
           maxEnergy:
-            state?.max_energy ?? 100,
+            Math.max(
+              1,
+              safeNumber(
+                state?.max_energy,
+                100
+              )
+            ),
 
           currentJobId:
-            state?.current_job_id ?? null,
+            state?.current_job_id ??
+            null,
 
           jobExperience:
-            state?.job_experience ?? 0,
+            safeNumber(
+              state?.job_experience,
+              0
+            ),
 
           currentLocationId:
             state?.current_location_id ??
@@ -186,10 +332,39 @@ export async function GET(request: Request) {
       }
     );
 
-    return NextResponse.json({
-      players,
-      total: players.length,
-    });
+    /*
+     * ---------------------------------------------------------
+     * RESPONSE
+     * ---------------------------------------------------------
+     *
+     * `total` = all player profiles.
+     *
+     * `resultCount` = players returned by the current
+     * search/filter.
+     */
+    return NextResponse.json(
+      {
+        players,
+
+        total:
+          totalPlayerCount ?? 0,
+
+        resultCount:
+          players.length,
+
+        search:
+          search || null,
+
+        generatedAt:
+          new Date().toISOString(),
+      },
+      {
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error(
       "Admin players API error:",
@@ -198,7 +373,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Admin access required.",
+        error:
+          "Admin access required.",
       },
       {
         status: 403,
