@@ -18,6 +18,8 @@ import DailyRewardPanel from "@/components/game/DailyRewardPanel";
 
 import NPCInteractionPanel from "@/components/game/NPCInteractionPanel";
 
+import VisitorTracker from "@/components/analytics/VisitorTracker";
+
 import PlayerFreezeGuard from "@/components/game/PlayerFreezeGuard";
 import GameSettingsGuard from "@/components/game/GameSettingsGuard";
 
@@ -444,6 +446,8 @@ const cityActivities = [
 
   return (
   <main className="min-h-screen bg-[#07110f] text-white">
+    <VisitorTracker />
+    
   <PlayerFreezeGuard />
   <GameSettingsGuard />
 
