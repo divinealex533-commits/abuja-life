@@ -84,6 +84,14 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatLocation(value: string) {
+  return value
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
+}
+
 export default function AdminPlayerManagementPage({
   params,
 }: {
@@ -137,16 +145,23 @@ export default function AdminPlayerManagementPage({
       );
 
       const data =
-        await response.json();
+        await response.json().catch(() => null);
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
+          data?.error ||
             "Unable to load player."
         );
       }
 
+      if (!data?.player) {
+        throw new Error(
+          "Player data was not returned."
+        );
+      }
+
       setPlayer(data.player);
+
       setLocation(
         data.player.currentLocationId
       );
@@ -169,6 +184,8 @@ export default function AdminPlayerManagementPage({
     action: Action,
     payload: Record<string, unknown> = {}
   ) {
+    if (working) return;
+
     try {
       setWorking(true);
       setError("");
@@ -192,17 +209,23 @@ export default function AdminPlayerManagementPage({
       );
 
       const data =
-        await response.json();
+        await response
+          .json()
+          .catch(() => null);
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
+          data?.error ||
             "Unable to complete action."
         );
       }
 
       setSuccess(
-        `${action} action completed successfully.`
+        `${actionLabel(action)} completed successfully${
+          data?.auditLogged
+            ? " and recorded in the audit log."
+            : "."
+        }`
       );
 
       setReason("");
@@ -220,6 +243,181 @@ export default function AdminPlayerManagementPage({
       );
     } finally {
       setWorking(false);
+    }
+  }
+
+  function actionLabel(action: Action) {
+    switch (action) {
+      case "freeze":
+        return "Freeze";
+      case "unfreeze":
+        return "Unfreeze";
+      case "cash":
+        return "Cash adjustment";
+      case "energy":
+        return "Energy update";
+      case "reputation":
+        return "Reputation update";
+      case "experience":
+        return "XP update";
+      case "location":
+        return "Location update";
+      case "reset":
+        return "Player reset";
+      default:
+        return "Admin action";
+    }
+  }
+
+  function submitCash() {
+    const amount = Number(cashAmount);
+
+    if (!Number.isFinite(amount) || amount === 0) {
+      setError(
+        "Enter a non-zero cash amount. Use a negative number to remove cash."
+      );
+      return;
+    }
+
+    if (
+      Math.abs(amount) >= 100000 &&
+      !window.confirm(
+        `You are about to adjust this player's balance by ${formatMoney(
+          amount
+        )}. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    performAction("cash", {
+      amount,
+    });
+  }
+
+  function submitEnergy() {
+    if (energy.trim() === "") {
+      setError(
+        "Enter an energy value."
+      );
+      return;
+    }
+
+    const value = Number(energy);
+
+    if (
+      !Number.isInteger(value) ||
+      value < 0 ||
+      !player ||
+      value > player.maxEnergy
+    ) {
+      setError(
+        `Energy must be a whole number between 0 and ${
+          player?.maxEnergy ?? 0
+        }.`
+      );
+      return;
+    }
+
+    performAction("energy", {
+      value,
+    });
+  }
+
+  function submitReputation() {
+    if (reputation.trim() === "") {
+      setError(
+        "Enter a reputation value."
+      );
+      return;
+    }
+
+    const value = Number(reputation);
+
+    if (!Number.isInteger(value)) {
+      setError(
+        "Reputation must be a whole number."
+      );
+      return;
+    }
+
+    performAction("reputation", {
+      value,
+    });
+  }
+
+  function submitExperience() {
+    if (experience.trim() === "") {
+      setError(
+        "Enter an XP value."
+      );
+      return;
+    }
+
+    const value = Number(experience);
+
+    if (
+      !Number.isInteger(value) ||
+      value < 0
+    ) {
+      setError(
+        "XP must be a non-negative whole number."
+      );
+      return;
+    }
+
+    performAction("experience", {
+      value,
+    });
+  }
+
+  function submitLocation() {
+    if (!location.trim()) {
+      setError(
+        "Select a location first."
+      );
+      return;
+    }
+
+    if (
+      player &&
+      location === player.currentLocationId
+    ) {
+      setError(
+        "Player is already at this location."
+      );
+      return;
+    }
+
+    performAction("location", {
+      locationId: location,
+    });
+  }
+
+  function confirmReset() {
+    if (!player) return;
+
+    const confirmed =
+      window.confirm(
+        [
+          `Reset ${player.displayName}'s Abuja Life state?`,
+          "",
+          "This will reset:",
+          "• Cash to the current Admin default",
+          "• Energy to the current maximum",
+          "• Reputation to 0",
+          "• XP to 0",
+          "• Current job",
+          "• Job experience",
+          "• Location to Garki",
+          "• Frozen status",
+          "",
+          "This action will be recorded in the audit history.",
+        ].join("\n")
+      );
+
+    if (confirmed) {
+      performAction("reset");
     }
   }
 
@@ -241,7 +439,7 @@ export default function AdminPlayerManagementPage({
         <div className="mx-auto max-w-6xl">
           <Link
             href="/admin/players"
-            className="text-xs font-bold text-orange-400"
+            className="text-xs font-bold text-orange-400 hover:text-orange-300"
           >
             ← Back to Players
           </Link>
@@ -270,7 +468,7 @@ export default function AdminPlayerManagementPage({
               ← Back to Players
             </Link>
 
-            <div className="mt-4 flex items-center gap-4">
+            <div className="mt-4 flex flex-wrap items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-3xl">
                 {player.avatar}
               </div>
@@ -293,13 +491,13 @@ export default function AdminPlayerManagementPage({
                 }`}
               >
                 {player.isFrozen
-                  ? "Frozen"
-                  : "Active"}
+                  ? "🔒 Frozen"
+                  : "● Active"}
               </span>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Link
               href={`/admin/player-actions?playerId=${player.id}`}
               className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black text-slate-300 transition hover:border-orange-500/30 hover:text-white"
@@ -309,8 +507,8 @@ export default function AdminPlayerManagementPage({
 
             <button
               onClick={loadPlayer}
-              disabled={working}
-              className="rounded-xl bg-orange-500 px-5 py-3 text-xs font-black text-black hover:bg-orange-400 disabled:opacity-50"
+              disabled={working || loading}
+              className="rounded-xl bg-orange-500 px-5 py-3 text-xs font-black text-black transition hover:bg-orange-400 disabled:opacity-50"
             >
               ↻ Refresh
             </button>
@@ -320,14 +518,30 @@ export default function AdminPlayerManagementPage({
         {/* FEEDBACK */}
 
         {error && (
-          <div className="mb-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-300">
-            {error}
+          <div className="mb-5 flex items-start justify-between gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-300">
+            <span>{error}</span>
+
+            <button
+              onClick={() => setError("")}
+              className="text-red-400 hover:text-white"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
           </div>
         )}
 
         {success && (
-          <div className="mb-5 rounded-2xl border border-green-500/20 bg-green-500/10 px-5 py-4 text-sm font-bold text-green-300">
-            {success}
+          <div className="mb-5 flex items-start justify-between gap-4 rounded-2xl border border-green-500/20 bg-green-500/10 px-5 py-4 text-sm font-bold text-green-300">
+            <span>{success}</span>
+
+            <button
+              onClick={() => setSuccess("")}
+              className="text-green-400 hover:text-white"
+              aria-label="Dismiss success"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -379,7 +593,7 @@ export default function AdminPlayerManagementPage({
             </p>
 
             <p className="mt-2 text-2xl font-black text-green-400">
-              {player.reputation}
+              {player.reputation.toLocaleString()}
             </p>
           </div>
 
@@ -411,7 +625,9 @@ export default function AdminPlayerManagementPage({
               </p>
 
               <p className="mt-2 text-sm font-bold">
-                {player.currentLocationId}
+                {formatLocation(
+                  player.currentLocationId
+                )}
               </p>
             </div>
 
@@ -423,6 +639,11 @@ export default function AdminPlayerManagementPage({
               <p className="mt-2 text-sm font-bold">
                 {player.currentJobId ||
                   "No active job"}
+              </p>
+
+              <p className="mt-1 text-[10px] text-slate-600">
+                Job XP:{" "}
+                {player.jobExperience.toLocaleString()}
               </p>
             </div>
 
@@ -461,8 +682,13 @@ export default function AdminPlayerManagementPage({
             }
             placeholder="Why are you making this change?"
             rows={3}
-            className="mt-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-orange-500/50"
+            maxLength={1000}
+            className="mt-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
           />
+
+          <div className="mt-2 text-right text-[10px] text-slate-700">
+            {reason.length}/1000
+          </div>
 
         </section>
 
@@ -489,7 +715,7 @@ export default function AdminPlayerManagementPage({
                   performAction("unfreeze")
                 }
                 disabled={working}
-                className="rounded-xl bg-green-500 px-6 py-3 text-xs font-black text-black hover:bg-green-400 disabled:opacity-50"
+                className="rounded-xl bg-green-500 px-6 py-3 text-xs font-black text-black transition hover:bg-green-400 disabled:opacity-50"
               >
                 🔓 Unfreeze Player
               </button>
@@ -499,7 +725,7 @@ export default function AdminPlayerManagementPage({
                   performAction("freeze")
                 }
                 disabled={working}
-                className="rounded-xl bg-red-500 px-6 py-3 text-xs font-black text-white hover:bg-red-400 disabled:opacity-50"
+                className="rounded-xl bg-red-500 px-6 py-3 text-xs font-black text-white transition hover:bg-red-400 disabled:opacity-50"
               >
                 🔒 Freeze Player
               </button>
@@ -526,6 +752,7 @@ export default function AdminPlayerManagementPage({
 
             <input
               type="number"
+              step="0.01"
               value={cashAmount}
               onChange={(event) =>
                 setCashAmount(
@@ -533,27 +760,26 @@ export default function AdminPlayerManagementPage({
                 )
               }
               placeholder="Amount — use negative to remove"
-              className="rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-orange-500/50"
+              className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
             />
 
             <button
-              onClick={() =>
-                performAction("cash", {
-                  amount: Number(
-                    cashAmount
-                  ),
-                })
-              }
+              onClick={submitCash}
               disabled={
                 working ||
-                !cashAmount
+                cashAmount.trim() === ""
               }
-              className="rounded-xl bg-orange-500 px-6 py-3 text-xs font-black text-black hover:bg-orange-400 disabled:opacity-50"
+              className="rounded-xl bg-orange-500 px-6 py-3 text-xs font-black text-black transition hover:bg-orange-400 disabled:opacity-50"
             >
               💰 Adjust Cash
             </button>
 
           </div>
+
+          <p className="mt-2 text-[10px] text-slate-700">
+            Positive amount adds cash. Negative
+            amount removes cash.
+          </p>
 
         </section>
 
@@ -565,12 +791,23 @@ export default function AdminPlayerManagementPage({
             Progression Controls
           </h2>
 
+          <p className="mt-1 text-xs text-slate-600">
+            Set the player's current energy,
+            reputation and XP.
+          </p>
+
           <div className="mt-5 grid gap-4 md:grid-cols-3">
+
+            {/* ENERGY */}
 
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                 Energy
               </label>
+
+              <p className="mt-1 text-[10px] text-slate-700">
+                Allowed: 0–{player.maxEnergy}
+              </p>
 
               <div className="mt-2 flex gap-2">
                 <input
@@ -584,39 +821,37 @@ export default function AdminPlayerManagementPage({
                     )
                   }
                   placeholder={`${player.energy}`}
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none"
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
                 />
 
                 <button
-                  onClick={() =>
-                    performAction(
-                      "energy",
-                      {
-                        value: Number(
-                          energy
-                        ),
-                      }
-                    )
-                  }
+                  onClick={submitEnergy}
                   disabled={
                     working ||
-                    !energy
+                    energy.trim() === ""
                   }
-                  className="rounded-xl bg-white/10 px-4 text-xs font-black hover:bg-white/20 disabled:opacity-50"
+                  className="rounded-xl bg-white/10 px-4 text-xs font-black transition hover:bg-white/20 disabled:opacity-50"
                 >
                   Set
                 </button>
               </div>
             </div>
 
+            {/* REPUTATION */}
+
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                 Reputation
               </label>
 
+              <p className="mt-1 text-[10px] text-slate-700">
+                Whole number
+              </p>
+
               <div className="mt-2 flex gap-2">
                 <input
                   type="number"
+                  step="1"
                   value={reputation}
                   onChange={(event) =>
                     setReputation(
@@ -624,40 +859,38 @@ export default function AdminPlayerManagementPage({
                     )
                   }
                   placeholder={`${player.reputation}`}
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none"
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
                 />
 
                 <button
-                  onClick={() =>
-                    performAction(
-                      "reputation",
-                      {
-                        value: Number(
-                          reputation
-                        ),
-                      }
-                    )
-                  }
+                  onClick={submitReputation}
                   disabled={
                     working ||
-                    !reputation
+                    reputation.trim() === ""
                   }
-                  className="rounded-xl bg-white/10 px-4 text-xs font-black hover:bg-white/20 disabled:opacity-50"
+                  className="rounded-xl bg-white/10 px-4 text-xs font-black transition hover:bg-white/20 disabled:opacity-50"
                 >
                   Set
                 </button>
               </div>
             </div>
 
+            {/* XP */}
+
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                 XP
               </label>
 
+              <p className="mt-1 text-[10px] text-slate-700">
+                Non-negative whole number
+              </p>
+
               <div className="mt-2 flex gap-2">
                 <input
                   type="number"
                   min="0"
+                  step="1"
                   value={experience}
                   onChange={(event) =>
                     setExperience(
@@ -665,25 +898,16 @@ export default function AdminPlayerManagementPage({
                     )
                   }
                   placeholder={`${player.experience}`}
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none"
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
                 />
 
                 <button
-                  onClick={() =>
-                    performAction(
-                      "experience",
-                      {
-                        value: Number(
-                          experience
-                        ),
-                      }
-                    )
-                  }
+                  onClick={submitExperience}
                   disabled={
                     working ||
-                    !experience
+                    experience.trim() === ""
                   }
-                  className="rounded-xl bg-white/10 px-4 text-xs font-black hover:bg-white/20 disabled:opacity-50"
+                  className="rounded-xl bg-white/10 px-4 text-xs font-black transition hover:bg-white/20 disabled:opacity-50"
                 >
                   Set
                 </button>
@@ -716,7 +940,7 @@ export default function AdminPlayerManagementPage({
                   event.target.value
                 )
               }
-              className="min-w-[220px] rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none"
+              className="min-w-[220px] rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500/50"
             >
               {locations.map(
                 (item) => (
@@ -731,17 +955,12 @@ export default function AdminPlayerManagementPage({
             </select>
 
             <button
-              onClick={() =>
-                performAction(
-                  "location",
-                  {
-                    locationId:
-                      location,
-                  }
-                )
+              onClick={submitLocation}
+              disabled={
+                working ||
+                !location
               }
-              disabled={working}
-              className="rounded-xl bg-white/10 px-6 py-3 text-xs font-black hover:bg-white/20 disabled:opacity-50"
+              className="rounded-xl bg-white/10 px-6 py-3 text-xs font-black transition hover:bg-white/20 disabled:opacity-50"
             >
               📍 Move Player
             </button>
@@ -758,30 +977,40 @@ export default function AdminPlayerManagementPage({
             Danger Zone
           </h2>
 
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs leading-5 text-slate-600">
             Reset this player's game state.
-            This action is recorded in the
-            audit history.
+            The reset uses the current Admin
+            Game Settings for default cash and
+            maximum energy. This action is
+            permanently recorded in the audit
+            history.
           </p>
 
           <button
-            onClick={() => {
-              const confirmed =
-                window.confirm(
-                  "Reset this player's Abuja Life state? This will reset cash, energy, reputation, job and XP."
-                );
-
-              if (confirmed) {
-                performAction("reset");
-              }
-            }}
+            onClick={confirmReset}
             disabled={working}
-            className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-3 text-xs font-black text-red-400 hover:bg-red-500/20 disabled:opacity-50"
+            className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-3 text-xs font-black text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
           >
-            🔄 Reset Player State
+            {working
+              ? "Working..."
+              : "🔄 Reset Player State"}
           </button>
 
         </section>
+
+        {/* WORKING INDICATOR */}
+
+        {working && (
+          <div className="fixed bottom-6 right-6 z-[200] rounded-2xl border border-orange-500/20 bg-[#09110f] px-5 py-3 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-400" />
+
+              <span className="text-xs font-black text-slate-300">
+                Applying admin action...
+              </span>
+            </div>
+          </div>
+        )}
 
       </div>
     </main>
