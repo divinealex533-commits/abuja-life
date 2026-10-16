@@ -13,6 +13,7 @@ import {
 import {
   PlayerGameState,
   applyJob,
+  savePersistentPlayerState,
 } from "@/lib/game/player";
 
 import {
@@ -1093,18 +1094,34 @@ function handleTaxiComplete(result: {
 
             <button
               className="mt-6 w-full rounded-2xl bg-emerald-400 py-4 font-black text-black transition hover:bg-emerald-300"
-              onClick={() => {
-                setPlayer((currentPlayer) =>
-                  applyJob(
-                    currentPlayer,
-                    selectedJob.id
-                  )
-                );
+              onClick={async () => {
+  const updatedPlayer = applyJob(
+    player,
+    selectedJob.id
+  );
 
-                setShiftActive(false);
-                setActiveMission(null);
-                setSelectedJobId(null);
-              }}
+  setPlayer(updatedPlayer);
+  savePlayerState(updatedPlayer);
+
+  const saved = await savePersistentPlayerState(
+    updatedPlayer
+  );
+
+  if (!saved) {
+    setMissionMessage(
+      "Your job could not be saved. Please try again."
+    );
+    return;
+  }
+
+  setShiftActive(false);
+  setActiveMission(null);
+  setSelectedJobId(null);
+
+  if (selectedJob.id === "food-vendor") {
+    window.location.href = "/jobs/food-vendor";
+  }
+}}
             >
               APPLY FOR THIS JOB →
             </button>
