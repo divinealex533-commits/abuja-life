@@ -1,521 +1,634 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
 import {
-  FoodOrder,
-  FoodPreparation,
   FOOD_DISHES,
+  FOOD_ORDERS,
+  FoodPreparation,
+  FoodOrder,
   calculateFoodOrder,
 } from "@/lib/game/foodVendor";
-import FoodCookingGame from "@/components/game/FoodCookingGame";
 
-interface FoodVendorPanelProps {
-  order: FoodOrder;
-  onComplete: (result: {
-    payment: number;
-    tip: number;
-    reputation: number;
-    satisfaction: number;
-    energyCost: number;
-    quality: string;
-    message: string;
-  }) => void;
-  onCancel?: () => void;
+import {
+  PlayerGameState,
+  loadPersistentPlayerState,
+  savePersistentPlayerState,
+} from "@/lib/game/player";
+
+const STEPS = [
+  {
+    key: "ingredientScore" as const,
+    title: "Prepare the ingredients",
+    icon: "🥕",
+    description:
+      "Stop the meter close to the target to prepare the ingredients properly.",
+  },
+  {
+    key: "cookingScore" as const,
+    title: "Cook the meal",
+    icon: "🍳",
+    description:
+      "Time the heat carefully. A better stop means better cooking.",
+  },
+  {
+    key: "presentationScore" as const,
+    title: "Present the meal",
+    icon: "🍽️",
+    description:
+      "Plate the order neatly before serving the customer.",
+  },
+] as const;
+
+type Props = {
+  onComplete?: (
+    result: ReturnType<typeof calculateFoodOrder>
+  ) => void;
+};
+
+function randomOrder(previousId?: string): FoodOrder {
+  const available = FOOD_ORDERS.filter(
+    (order) => order.id !== previousId
+  );
+
+  return (
+    available[
+      Math.floor(Math.random() * available.length)
+    ] ?? FOOD_ORDERS[0]
+  );
+}
+
+function clamp(
+  value: number,
+  min: number,
+  max: number
+) {
+  return Math.max(min, Math.min(max, value));
 }
 
 export default function FoodVendorPanel({
-  order,
   onComplete,
-  onCancel,
-}: FoodVendorPanelProps) {
-  const [step, setStep] = useState(1);
+}: Props) {
+  const [player, setPlayer] =
+    useState<PlayerGameState | null>(null);
 
-  const [ingredients, setIngredients] = useState(75);
-  const [cooking, setCooking] = useState(75);
-  const [presentation, setPresentation] = useState(75);
-
-  const [finished, setFinished] = useState(false);
-  const [cookingCompleted, setCookingCompleted] = useState(false);
-
-  const dish = useMemo(
-    () => FOOD_DISHES[order.dish],
-    [order.dish]
+  const [order, setOrder] = useState<FoodOrder>(
+    () => FOOD_ORDERS[0]
   );
 
-  const progress = (step / 5) * 100;
+  const [stepIndex, setStepIndex] = useState(0);
 
-  function nextStep() {
-    if (step < 5) {
-      setStep((current) => current + 1);
-    }
-  }
+  const [meter, setMeter] = useState(50);
+  const [direction, setDirection] = useState(1);
+  const [target, setTarget] = useState(75);
 
-  function handleCookingComplete(performance: number) {
-    const cookingScore = Math.round(
-      Math.max(0, Math.min(1, performance)) * 100
+  const [preparation, setPreparation] =
+    useState<FoodPreparation>({
+      ingredientScore: 0,
+      cookingScore: 0,
+      presentationScore: 0,
+    });
+
+  const [result, setResult] =
+    useState<ReturnType<
+      typeof calculateFoodOrder
+    > | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const step = STEPS[stepIndex];
+  const dish = FOOD_DISHES[order.dish];
+
+  useEffect(() => {
+    let mounted = true;
+
+    void loadPersistentPlayerState().then(
+      (state) => {
+        if (mounted) {
+          setPlayer(state);
+        }
+      }
     );
 
-    setCooking(cookingScore);
-    setCookingCompleted(true);
-    setStep(4);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (result || !player) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setMeter((current) => {
+        let next =
+          current + direction * 3;
+
+        if (next >= 100) {
+          next = 100;
+          setDirection(-1);
+        }
+
+        if (next <= 0) {
+          next = 0;
+          setDirection(1);
+        }
+
+        return next;
+      });
+    }, 45);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [direction, player, result]);
+
+  const scoreLabel = useMemo(() => {
+    const distance = Math.abs(
+      meter - target
+    );
+
+    if (distance <= 4) {
+      return "PERFECT";
+    }
+
+    if (distance <= 10) {
+      return "GREAT";
+    }
+
+    if (distance <= 18) {
+      return "GOOD";
+    }
+
+    return "POOR";
+  }, [meter, target]);
+
+  function prepareNewStep(
+    nextIndex: number
+  ) {
+    setStepIndex(nextIndex);
+    setMeter(50);
+    setDirection(
+      Math.random() > 0.5 ? 1 : -1
+    );
+    setTarget(
+      25 + Math.floor(Math.random() * 51)
+    );
   }
 
-  function completeOrder() {
-    if (!cookingCompleted) return;
+  function stopMeter() {
+    if (!player || saving || result) {
+      return;
+    }
 
-    const preparation: FoodPreparation = {
-      ingredientScore: ingredients,
-      cookingScore: cooking,
-      presentationScore: presentation,
+    const distance = Math.abs(
+      meter - target
+    );
+
+    const score = clamp(
+      Math.round(100 - distance * 4),
+      0,
+      100
+    );
+
+    const nextPreparation: FoodPreparation = {
+      ...preparation,
+      [step.key]: score,
     };
 
-    const result = calculateFoodOrder(
-      order,
-      preparation
-    );
+    setPreparation(nextPreparation);
 
-    setFinished(true);
+    if (stepIndex < STEPS.length - 1) {
+      prepareNewStep(stepIndex + 1);
+      setMessage(
+        `${scoreLabel}! ${score}/100`
+      );
+      return;
+    }
 
-    onComplete(result);
+    void finishOrder(nextPreparation);
   }
 
-  if (finished) {
+  async function finishOrder(
+    finalPreparation: FoodPreparation
+  ) {
+    if (!player) {
+      return;
+    }
+
+    if (player.energy < order.energyCost) {
+      setMessage(
+        `You need ${order.energyCost} energy for this order, but you only have ${player.energy}.`
+      );
+      return;
+    }
+
+    const calculated =
+      calculateFoodOrder(
+        order,
+        finalPreparation
+      );
+
+    const updatedPlayer: PlayerGameState = {
+      ...player,
+
+      cash:
+        player.cash +
+        calculated.payment +
+        calculated.tip,
+
+      energy: Math.max(
+        0,
+        player.energy -
+          calculated.energyCost
+      ),
+
+      reputation:
+        player.reputation +
+        calculated.reputation,
+
+      jobExperience:
+        player.jobExperience +
+        calculated.reputation +
+        2,
+    };
+
+    setSaving(true);
+    setMessage(
+      "Saving your earnings..."
+    );
+
+    const saved =
+      await savePersistentPlayerState(
+        updatedPlayer
+      );
+
+    if (!saved) {
+      setSaving(false);
+
+      setMessage(
+        "The order was completed, but your player state could not be saved. Please try again."
+      );
+
+      return;
+    }
+
+    setPlayer(updatedPlayer);
+    setResult(calculated);
+    setSaving(false);
+    setMessage(calculated.message);
+
+    onComplete?.(calculated);
+  }
+
+  function startNextOrder() {
+    const nextOrder = randomOrder(
+      order.id
+    );
+
+    setOrder(nextOrder);
+    setStepIndex(0);
+    setMeter(50);
+    setDirection(1);
+    setTarget(75);
+
+    setPreparation({
+      ingredientScore: 0,
+      cookingScore: 0,
+      presentationScore: 0,
+    });
+
+    setResult(null);
+    setMessage("");
+  }
+
+  if (!player) {
     return (
-      <section className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-6 shadow-2xl">
-        <div className="text-sm font-bold uppercase tracking-[0.25em] text-emerald-300">
-          Order Completed
+      <section className="rounded-3xl border border-white/10 bg-[#08110f] p-6 text-center">
+        <div className="text-sm font-bold text-slate-400">
+          Loading your Food Vendor shift...
         </div>
-
-        <h2 className="mt-2 text-3xl font-black text-white">
-          {dish.emoji} {dish.name}
-        </h2>
-
-        <p className="mt-2 text-white/60">
-          The customer has received the order.
-        </p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
-      {/* HEADER */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-500/10 via-[#08110f] to-emerald-500/10 p-5 shadow-2xl sm:p-7">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-sm font-bold uppercase tracking-[0.25em] text-emerald-300">
-            Food Vendor
+          <div className="text-[10px] font-black uppercase tracking-[0.25em] text-orange-300">
+            🍲 Food Vendor Shift
           </div>
 
-          <h2 className="mt-2 text-3xl font-black text-white">
-            {dish.emoji} {dish.name}
+          <h2 className="mt-2 text-3xl font-black">
+            {dish.name}
           </h2>
 
-          <p className="mt-2 text-white/60">
-            Customer:{" "}
-            <span className="font-semibold text-white">
-              {order.customer}
-            </span>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+            {dish.description} Serve{" "}
+            {order.customer} before they lose
+            patience.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">
-          <div className="text-xs uppercase tracking-wider text-white/40">
-            Base Price
-          </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[420px]">
+          <Stat
+            label="Cash"
+            value={`₦${player.cash.toLocaleString()}`}
+          />
 
-          <div className="text-xl font-black text-emerald-300">
-            ₦{order.basePrice.toLocaleString()}
-          </div>
-        </div>
-      </div>
+          <Stat
+            label="Energy"
+            value={`⚡ ${player.energy}/${player.maxEnergy}`}
+          />
 
-      {/* PROGRESS */}
-      <div className="mb-8">
-        <div className="mb-2 flex justify-between text-xs font-bold text-white/50">
-          <span>Order Progress</span>
-          <span>Step {step} of 5</span>
-        </div>
+          <Stat
+            label="Rep"
+            value={String(player.reputation)}
+          />
 
-        <div className="h-3 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-emerald-400 transition-all duration-500"
-            style={{
-              width: `${progress}%`,
-            }}
+          <Stat
+            label="Job XP"
+            value={String(
+              player.jobExperience
+            )}
           />
         </div>
       </div>
 
-      {/* STEP 1 — ACCEPT ORDER */}
-      {step === 1 && (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-          <div className="text-4xl">👨🏾‍🍳</div>
-
-          <h3 className="mt-4 text-2xl font-black text-white">
-            New customer order
-          </h3>
-
-          <p className="mt-2 text-white/60">
-            {order.customer} wants{" "}
-            <span className="font-bold text-white">
-              {dish.name}
-            </span>
-            .
-          </p>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl bg-white/5 p-3">
-              <div className="text-xs text-white/40">
-                Customer Mood
-              </div>
-
-              <div className="mt-1 font-bold capitalize text-white">
-                {order.customerMood}
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-white/5 p-3">
-              <div className="text-xs text-white/40">
-                Difficulty
-              </div>
-
-              <div className="mt-1 font-bold capitalize text-white">
-                {order.difficulty}
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-white/5 p-3">
-              <div className="text-xs text-white/40">
-                Energy
-              </div>
-
-              <div className="mt-1 font-bold text-white">
-                ⚡ {order.energyCost}
-              </div>
-            </div>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+          <div className="text-6xl">
+            {dish.emoji}
           </div>
 
-          <button
-            type="button"
-            onClick={nextStep}
-            className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-black text-black transition hover:bg-emerald-300 active:scale-[0.98]"
-          >
-            ACCEPT ORDER 🍲
-          </button>
-        </div>
-      )}
-
-      {/* STEP 2 — INGREDIENTS */}
-      {step === 2 && (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-          <div className="text-4xl">🥕</div>
-
-          <h3 className="mt-4 text-2xl font-black text-white">
-            Choose your ingredients
-          </h3>
-
-          <p className="mt-2 text-white/60">
-            Better ingredients improve the final quality
-            of the meal.
-          </p>
-
-          <div className="mt-6">
-            <div className="mb-3 flex justify-between">
-              <span className="font-bold text-white/60">
-                Ingredient Quality
-              </span>
-
-              <span className="font-black text-emerald-300">
-                {ingredients}%
-              </span>
-            </div>
-
-            <input
-              type="range"
-              min="40"
-              max="100"
-              step="5"
-              value={ingredients}
-              onChange={(event) =>
-                setIngredients(Number(event.target.value))
-              }
-              className="w-full accent-emerald-400"
-            />
-
-            <div className="mt-2 flex justify-between text-xs text-white/40">
-              <span>Basic ingredients</span>
-              <span>Premium ingredients</span>
-            </div>
+          <div className="mt-4 text-[10px] font-black uppercase tracking-wider text-orange-300">
+            Customer order
           </div>
 
-          <button
-            type="button"
-            onClick={nextStep}
-            className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-black text-black transition hover:bg-emerald-300 active:scale-[0.98]"
-          >
-            PREPARE INGREDIENTS
-          </button>
-        </div>
-      )}
-
-      {/* STEP 3 — ACTUAL COOKING GAME */}
-      {step === 3 && (
-        <div>
-          <div className="mb-4 rounded-2xl border border-orange-400/20 bg-orange-500/10 p-4">
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-orange-300">
-              Step 3 — Live Cooking
-            </div>
-
-            <h3 className="mt-2 text-2xl font-black text-white">
-              Cook the {dish.name}
-            </h3>
-
-            <p className="mt-2 text-sm text-white/60">
-              Your performance in the cooking game will determine
-              your cooking quality, payment and customer satisfaction.
-            </p>
-          </div>
-
-          <FoodCookingGame
-  dishName={dish.name}
-  cookingTime={10}
-  onComplete={handleCookingComplete}
-/>
-
-          <button
-            type="button"
-            onClick={() => setStep(2)}
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-white transition hover:bg-white/10"
-          >
-            BACK TO INGREDIENTS
-          </button>
-        </div>
-      )}
-
-      {/* STEP 4 — PRESENTATION */}
-      {step === 4 && (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-          <div className="text-4xl">🍽️</div>
-
-          <h3 className="mt-4 text-2xl font-black text-white">
-            Plate the meal
-          </h3>
-
-          <p className="mt-2 text-white/60">
-            Presentation matters. A beautiful plate can turn
-            a normal order into an excellent one.
-          </p>
-
-          {/* COOKING RESULT */}
-          <div className="mt-5 rounded-2xl border border-orange-400/20 bg-orange-500/10 p-4">
-            <div className="text-xs font-black uppercase tracking-wider text-orange-300">
-              Cooking Result
-            </div>
-
-            <div className="mt-2 flex items-center justify-between">
-              <span className="font-bold text-white/60">
-                Cooking Quality
-              </span>
-
-              <span className="text-2xl font-black text-orange-300">
-                {cooking}%
-              </span>
-            </div>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-orange-400 transition-all"
-                style={{
-                  width: `${cooking}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <div className="mb-3 flex justify-between">
-              <span className="font-bold text-white/60">
-                Presentation
-              </span>
-
-              <span className="font-black text-emerald-300">
-                {presentation}%
-              </span>
-            </div>
-
-            <input
-              type="range"
-              min="40"
-              max="100"
-              step="5"
-              value={presentation}
-              onChange={(event) =>
-                setPresentation(Number(event.target.value))
-              }
-              className="w-full accent-emerald-400"
-            />
-
-            <div className="mt-2 flex justify-between text-xs text-white/40">
-              <span>Simple</span>
-              <span>Restaurant quality</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={nextStep}
-            className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-black text-black transition hover:bg-emerald-300 active:scale-[0.98]"
-          >
-            PLATE & SERVE 🍽️
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStep(3)}
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-white transition hover:bg-white/10"
-          >
-            REPLAY COOKING
-          </button>
-        </div>
-      )}
-
-      {/* STEP 5 — FINAL RESULT */}
-      {step === 5 && (
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
-          <div className="text-4xl">💰</div>
-
-          <h3 className="mt-4 text-2xl font-black text-white">
-            Order ready!
-          </h3>
-
-          <p className="mt-2 text-white/60">
-            Everything is ready. Serve{" "}
-            <span className="font-bold text-white">
-              {order.customer}
-            </span>{" "}
-            and see how they rate your meal.
-          </p>
-
-          {/* FINAL SCORES */}
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl bg-white/5 p-3 text-center">
-              <div className="text-xs text-white/40">
-                Ingredients
-              </div>
-
-              <div className="mt-1 font-black text-white">
-                {ingredients}%
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-orange-500/10 p-3 text-center">
-              <div className="text-xs text-orange-300/60">
-                Cooking
-              </div>
-
-              <div className="mt-1 font-black text-orange-300">
-                {cooking}%
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-white/5 p-3 text-center">
-              <div className="text-xs text-white/40">
-                Presentation
-              </div>
-
-              <div className="mt-1 font-black text-white">
-                {presentation}%
-              </div>
-            </div>
-          </div>
-
-          {/* OVERALL QUALITY */}
-          <div className="mt-4 rounded-2xl bg-black/20 p-4">
-            <div className="text-xs uppercase tracking-wider text-white/40">
-              Overall Meal Quality
-            </div>
-
-            <div className="mt-2 text-3xl font-black text-emerald-300">
-              {Math.round(
-                (ingredients + cooking + presentation) / 3
-              )}
-              %
-            </div>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-emerald-400 transition-all"
-                style={{
-                  width: `${
-                    (ingredients + cooking + presentation) / 3
-                  }%`,
-                }}
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={completeOrder}
-            className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-black text-black transition hover:bg-emerald-300 active:scale-[0.98]"
-          >
-            SERVE & GET PAID 💰
-          </button>
-
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="mt-3 w-full rounded-2xl border border-white/10 px-5 py-3 font-bold text-white/60 transition hover:bg-white/5 hover:text-white"
-            >
-              CANCEL ORDER
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ORDER INFO */}
-      <div className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-        <div className="rounded-xl bg-white/5 p-3">
-          <div className="text-white/40">
-            Customer
-          </div>
-
-          <div className="mt-1 font-bold text-white">
+          <div className="mt-1 text-2xl font-black">
             {order.customer}
           </div>
+
+          <div className="mt-2 text-sm text-white/50">
+            Mood: {order.customerMood}
+          </div>
+
+          <div className="mt-5 space-y-2 text-sm">
+            <InfoRow
+              label="Base price"
+              value={`₦${order.basePrice.toLocaleString()}`}
+            />
+
+            <InfoRow
+              label="Energy cost"
+              value={`⚡ ${order.energyCost}`}
+            />
+
+            <InfoRow
+              label="Difficulty"
+              value={order.difficulty.toUpperCase()}
+            />
+
+            <InfoRow
+              label="Patience"
+              value={`${order.patience}%`}
+            />
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-orange-400/10 bg-orange-400/5 p-4 text-xs leading-5 text-white/50">
+            Better preparation increases
+            satisfaction, payment, tips and
+            reputation.
+          </div>
         </div>
 
-        <div className="rounded-xl bg-white/5 p-3">
-          <div className="text-white/40">
-            Dish
-          </div>
+        <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+          {!result ? (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    Step {stepIndex + 1} of{" "}
+                    {STEPS.length}
+                  </div>
 
-          <div className="mt-1 font-bold text-white">
-            {dish.name}
-          </div>
-        </div>
+                  <h3 className="mt-1 text-2xl font-black">
+                    {step.icon}{" "}
+                    {step.title}
+                  </h3>
+                </div>
 
-        <div className="rounded-xl bg-white/5 p-3">
-          <div className="text-white/40">
-            Energy
-          </div>
+                <div className="rounded-xl bg-white/5 px-3 py-2 text-xs font-black text-white/60">
+                  {meter}%
+                </div>
+              </div>
 
-          <div className="mt-1 font-bold text-white">
-            ⚡ {order.energyCost}
-          </div>
-        </div>
+              <p className="mt-3 text-sm leading-6 text-white/50">
+                {step.description}
+              </p>
 
-        <div className="rounded-xl bg-white/5 p-3">
-          <div className="text-white/40">
-            Difficulty
-          </div>
+              <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-white/35">
+                  <span>0</span>
+                  <span>
+                    Target: {target}
+                  </span>
+                  <span>100</span>
+                </div>
 
-          <div className="mt-1 font-bold capitalize text-white">
-            {order.difficulty}
-          </div>
+                <div className="relative mt-5 h-7 rounded-full bg-white/10">
+                  <div
+                    className="absolute top-0 h-full w-1 rounded-full bg-orange-300/80"
+                    style={{
+                      left: `${target}%`,
+                    }}
+                  />
+
+                  <div
+                    className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-emerald-400 shadow-lg transition-[left]"
+                    style={{
+                      left: `${meter}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="mt-5 text-center text-sm font-black text-white/70">
+                  {scoreLabel}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={stopMeter}
+                  disabled={saving}
+                  className="mt-5 w-full rounded-2xl bg-orange-400 px-5 py-4 text-sm font-black text-black transition hover:bg-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {stepIndex ===
+                  STEPS.length - 1
+                    ? "SERVE MEAL 🍽️"
+                    : `STOP — ${step.title.toUpperCase()}`}
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-2">
+                {STEPS.map(
+                  (item, index) => {
+                    const score =
+                      preparation[
+                        item.key
+                      ];
+
+                    return (
+                      <div
+                        key={item.key}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-center"
+                      >
+                        <div className="text-lg">
+                          {item.icon}
+                        </div>
+
+                        <div className="mt-1 text-[9px] font-black uppercase text-white/35">
+                          {index + 1}
+                        </div>
+
+                        <div className="mt-1 text-sm font-black text-white">
+                          {score || "—"}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center">
+              <div className="text-6xl">
+                {result.quality ===
+                "excellent"
+                  ? "🔥"
+                  : result.quality ===
+                    "good"
+                  ? "😋"
+                  : result.quality ===
+                    "okay"
+                  ? "🙂"
+                  : "😬"}
+              </div>
+
+              <div className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">
+                Order complete
+              </div>
+
+              <h3 className="mt-2 text-3xl font-black">
+                {result.quality.toUpperCase()}{" "}
+                MEAL
+              </h3>
+
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-white/55">
+                {result.message}
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Reward
+                  label="Meal payment"
+                  value={`₦${result.payment.toLocaleString()}`}
+                />
+
+                <Reward
+                  label="Customer tip"
+                  value={`₦${result.tip.toLocaleString()}`}
+                />
+
+                <Reward
+                  label="Satisfaction"
+                  value={`${result.satisfaction}%`}
+                />
+
+                <Reward
+                  label="Reputation"
+                  value={`+${result.reputation}`}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={startNextOrder}
+                className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 text-sm font-black text-black transition hover:bg-emerald-300"
+              >
+                TAKE NEXT ORDER →
+              </button>
+            </div>
+          )}
+
+          {message && !result && (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-center text-xs font-bold text-white/55">
+              {message}
+            </div>
+          )}
         </div>
       </div>
     </section>
+  );
+}
+
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+      <div className="text-[9px] font-black uppercase tracking-wider text-white/30">
+        {label}
+      </div>
+
+      <div className="mt-1 truncate text-sm font-black text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2">
+      <span className="text-white/35">
+        {label}
+      </span>
+
+      <span className="font-black text-white/75">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Reward({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+      <div className="text-[9px] font-black uppercase tracking-wider text-white/30">
+        {label}
+      </div>
+
+      <div className="mt-1 text-lg font-black text-emerald-300">
+        {value}
+      </div>
+    </div>
   );
 }
