@@ -1119,8 +1119,14 @@ function handleTaxiComplete(result: {
   setSelectedJobId(null);
 
   if (selectedJob.id === "food-vendor") {
-    window.location.href = "/jobs/food-vendor";
-  }
+  window.location.href = "/jobs/food-vendor";
+  return;
+}
+
+if (selectedJob.id === "shopkeeper") {
+  window.location.href = "/jobs/shopkeeper";
+  return;
+}
 }}
             >
               APPLY FOR THIS JOB →
