@@ -1132,6 +1132,11 @@ if (selectedJob.id === "taxi-driver") {
   window.location.href = "/jobs/taxi-driver";
   return;
 }
+
+if (selectedJob.id === "delivery-rider") {
+  window.location.href = "/jobs/delivery-rider";
+  return;
+}
                 
 }}
             >
