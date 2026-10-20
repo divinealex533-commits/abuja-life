@@ -1127,6 +1127,12 @@ if (selectedJob.id === "shopkeeper") {
   window.location.href = "/jobs/shopkeeper";
   return;
 }
+
+if (selectedJob.id === "taxi-driver") {
+  window.location.href = "/jobs/taxi-driver";
+  return;
+}
+                
 }}
             >
               APPLY FOR THIS JOB →
