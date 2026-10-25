@@ -1137,6 +1137,11 @@ if (selectedJob.id === "delivery-rider") {
   window.location.href = "/jobs/delivery-rider";
   return;
 }
+
+if (selectedJob.id === "barber") {
+  window.location.href = "/jobs/barber";
+  return;
+}                
                 
 }}
             >
