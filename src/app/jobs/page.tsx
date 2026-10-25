@@ -1157,6 +1157,11 @@ if (selectedJob.id === "barber") {
   window.location.href = "/jobs/software-developer";
   return;
 }    
+
+if (selectedJob.id === "journalist") {
+  window.location.href = "/jobs/journalist";
+  return;
+}                
                 
 }}
             >
