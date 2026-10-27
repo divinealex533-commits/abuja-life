@@ -1206,7 +1206,12 @@ if (selectedJob.id === "movie-director") {
 if (selectedJob.id === "firefighter") {
   window.location.href = "/jobs/firefighter";
   return;
-}                
+} 
+
+ if (selectedJob.id === "pilot") {
+  window.location.href = "/jobs/pilot";
+  return;
+}               
                 
 }}
             >
