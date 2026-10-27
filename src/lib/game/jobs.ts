@@ -9,7 +9,8 @@ export type JobCategory =
   | "creative"
   | "technology"
   | "service"
-  | "media";
+  | "media"
+  | "investigation"
 
 export interface Job {
   id: string;
@@ -170,6 +171,27 @@ export const JOBS: Job[] = [
     difficulty: "medium",
     tags: ["delivery", "bike", "transport"],
   },
+
+  {
+  id: "private-investigator",
+  name: "Private Investigator",
+  category: "investigation",
+  description:
+    "Investigate mysteries across Abuja, interrogate suspects, collect evidence and solve difficult cases.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 24000,
+  energyCost: 20,
+  reputationGain: 10,
+  difficulty: "hard",
+  tags: [
+    "investigation",
+    "detective",
+    "mystery",
+    "evidence",
+    "cases",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
