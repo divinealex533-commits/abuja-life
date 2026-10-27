@@ -235,6 +235,28 @@ export const JOBS: Job[] = [
     "emergency",
   ],
 },
+
+ {
+  id: "street-racer",
+  name: "Street Racer",
+  category: "transport",
+  description:
+    "Race through Abuja, master dangerous corners, use nitro and compete for big prizes.",
+  locationId: "wuse",
+  startingPay: 5500,
+  maxPay: 30000,
+  energyCost: 18,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "racing",
+    "cars",
+    "speed",
+    "drift",
+    "nitro",
+    "street",
+  ],
+}, 
 ];
 
 export function getJobById(jobId: string): Job | undefined {
