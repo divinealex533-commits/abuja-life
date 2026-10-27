@@ -323,6 +323,28 @@ export const JOBS: Job[] = [
     "nollywood",
   ],
 },
+
+  {
+  id: "firefighter",
+  name: "Firefighter",
+  category: "service",
+  description:
+    "Respond to emergencies across Abuja, rescue civilians, control dangerous fires and lead high-pressure rescue missions.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 30000,
+  energyCost: 20,
+  reputationGain: 10,
+  difficulty: "hard",
+  tags: [
+    "firefighter",
+    "rescue",
+    "emergency",
+    "fire",
+    "safety",
+    "service",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
