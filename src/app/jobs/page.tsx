@@ -1191,6 +1191,11 @@ if (selectedJob.id === "street-racer") {
  if (selectedJob.id === "game-streamer") {
   window.location.href = "/jobs/game-streamer";
   return;
+}
+
+ if (selectedJob.id === "bank-manager") {
+  window.location.href = "/jobs/bank-manager";
+  return;
 }               
                 
 }}
