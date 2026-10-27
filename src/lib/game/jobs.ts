@@ -301,6 +301,28 @@ export const JOBS: Job[] = [
     "fraud",
   ],
 },
+
+  {
+  id: "movie-director",
+  name: "Movie Director",
+  category: "creative",
+  description:
+    "Direct movies in Abuja, manage actors and budgets, create viral premieres and build a blockbuster career.",
+  locationId: "wuse",
+  startingPay: 6000,
+  maxPay: 35000,
+  energyCost: 22,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "movies",
+    "director",
+    "acting",
+    "production",
+    "cinema",
+    "nollywood",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
