@@ -257,6 +257,28 @@ export const JOBS: Job[] = [
     "street",
   ],
 }, 
+
+  {
+  id: "game-streamer",
+  name: "Game Streamer",
+  category: "media",
+  description:
+    "Build a gaming audience, stream live, create viral moments and become one of Abuja's biggest creators.",
+  locationId: "wuse",
+  startingPay: 3000,
+  maxPay: 25000,
+  energyCost: 18,
+  reputationGain: 8,
+  difficulty: "hard",
+  tags: [
+    "streaming",
+    "gaming",
+    "creator",
+    "tiktok",
+    "youtube",
+    "live",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
