@@ -192,6 +192,27 @@ export const JOBS: Job[] = [
     "cases",
   ],
 },
+
+  {
+  id: "paramedic",
+  name: "Paramedic",
+  category: "service",
+  description:
+    "Respond to emergency calls across Abuja, stabilize patients and race against time to save lives.",
+  locationId: "wuse",
+  startingPay: 4500,
+  maxPay: 22000,
+  energyCost: 22,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "medical",
+    "emergency",
+    "rescue",
+    "ambulance",
+    "first-aid",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
