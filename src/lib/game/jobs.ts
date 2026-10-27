@@ -213,6 +213,28 @@ export const JOBS: Job[] = [
     "first-aid",
   ],
 },
+
+  {
+  id: "police-officer",
+  name: "Police Officer",
+  category: "service",
+  description:
+    "Protect Abuja, respond to emergency calls, investigate crimes and make critical decisions on the streets.",
+  locationId: "wuse",
+  startingPay: 4000,
+  maxPay: 20000,
+  energyCost: 20,
+  reputationGain: 11,
+  difficulty: "hard",
+  tags: [
+    "police",
+    "patrol",
+    "crime",
+    "investigation",
+    "arrest",
+    "emergency",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
