@@ -279,6 +279,28 @@ export const JOBS: Job[] = [
     "live",
   ],
 },
+
+  {
+  id: "bank-manager",
+  name: "Bank Manager",
+  category: "business",
+  description:
+    "Run an Abuja bank branch, manage customers, approve loans, stop fraud and keep the branch profitable.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 30000,
+  energyCost: 20,
+  reputationGain: 10,
+  difficulty: "hard",
+  tags: [
+    "bank",
+    "business",
+    "finance",
+    "management",
+    "loans",
+    "fraud",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
