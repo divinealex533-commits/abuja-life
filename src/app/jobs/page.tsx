@@ -1166,7 +1166,27 @@ if (selectedJob.id === "journalist") {
  if (selectedJob.id === "event-planner") {
   window.location.href = "/jobs/event-planner";
   return;
+}  
+
+ if (selectedJob.id === "police-officer") {
+  window.location.href = "/jobs/police-officer";
+  return;
+}
+
+ if (selectedJob.id === "private-investigator") {
+  window.location.href = "/jobs/private-investigator";
+  return;
 }               
+
+if (selectedJob.id === "paramedic") {
+  window.location.href = "/jobs/paramedic";
+  return;
+}
+
+if (selectedJob.id === "street-racer") {
+  window.location.href = "/jobs/street-racer";
+  return;
+}            
                 
 }}
             >
