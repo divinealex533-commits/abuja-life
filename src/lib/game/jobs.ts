@@ -345,6 +345,28 @@ export const JOBS: Job[] = [
     "service",
   ],
 },
+
+  {
+  id: "pilot",
+  name: "Pilot",
+  category: "transport",
+  description:
+    "Fly passengers across Abuja and beyond, manage aircraft systems, handle emergencies and build a legendary aviation career.",
+  locationId: "wuse",
+  startingPay: 7000,
+  maxPay: 45000,
+  energyCost: 24,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "pilot",
+    "aviation",
+    "airline",
+    "flight",
+    "transport",
+    "captain",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
