@@ -1186,7 +1186,12 @@ if (selectedJob.id === "paramedic") {
 if (selectedJob.id === "street-racer") {
   window.location.href = "/jobs/street-racer";
   return;
-}            
+}    
+
+ if (selectedJob.id === "game-streamer") {
+  window.location.href = "/jobs/game-streamer";
+  return;
+}               
                 
 }}
             >
