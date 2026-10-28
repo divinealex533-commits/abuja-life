@@ -1211,6 +1211,11 @@ if (selectedJob.id === "firefighter") {
  if (selectedJob.id === "pilot") {
   window.location.href = "/jobs/pilot";
   return;
+} 
+
+ if (selectedJob.id === "lawyer") {
+  window.location.href = "/jobs/lawyer";
+  return;
 }               
                 
 }}
