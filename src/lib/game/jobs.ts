@@ -389,6 +389,29 @@ export const JOBS: Job[] = [
     "justice",
   ],
 },
+
+  {
+  id: "news-anchor",
+  name: "News Anchor",
+  category: "media",
+  description:
+    "Lead live broadcasts across Abuja, break major stories, interview guests, verify information and build a trusted media career.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 40000,
+  energyCost: 18,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "news",
+    "anchor",
+    "journalist",
+    "media",
+    "television",
+    "broadcast",
+    "reporter",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
