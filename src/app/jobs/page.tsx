@@ -1227,6 +1227,11 @@ if (selectedJob.id === "restaurant-chef") {
   window.location.href = "/jobs/restaurant-chef";
   return;
 }
+
+if (selectedJob.id === "cabin-crew") {
+  window.location.href = "/jobs/cabin-crew";
+  return;
+}                
                 
 }}
             >
