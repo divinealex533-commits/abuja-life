@@ -481,6 +481,30 @@ export const JOBS: Job[] = [
     "first-aid",
   ],
 },
+
+  {
+  id: "makeup-artist",
+  name: "Makeup Artist",
+  category: "creative",
+  description:
+    "Serve clients across Abuja, create beautiful makeup looks, handle bridal and VIP bookings, and build a successful beauty career.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 50000,
+  energyCost: 20,
+  reputationGain: 10,
+  difficulty: "medium",
+  tags: [
+    "makeup",
+    "beauty",
+    "makeup-artist",
+    "bridal",
+    "glam",
+    "vip",
+    "fashion",
+    "beauty-business",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
