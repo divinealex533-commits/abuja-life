@@ -367,6 +367,28 @@ export const JOBS: Job[] = [
     "captain",
   ],
 },
+
+  {
+  id: "lawyer",
+  name: "Lawyer",
+  category: "business",
+  description:
+    "Represent clients across Abuja, investigate evidence, question witnesses, challenge arguments and win high-stakes courtroom battles.",
+  locationId: "wuse",
+  startingPay: 6500,
+  maxPay: 50000,
+  energyCost: 22,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "lawyer",
+    "legal",
+    "courtroom",
+    "advocate",
+    "business",
+    "justice",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
