@@ -435,6 +435,29 @@ export const JOBS: Job[] = [
     "catering",
   ],
 },
+
+  {
+  id: "cabin-crew",
+  name: "Airline Cabin Crew",
+  category: "transport",
+  description:
+    "Serve passengers across Abuja and international routes, manage cabin safety, handle emergencies and build a top-tier airline career.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 42000,
+  energyCost: 18,
+  reputationGain: 10,
+  difficulty: "hard",
+  tags: [
+    "cabin-crew",
+    "flight-attendant",
+    "airline",
+    "aviation",
+    "passengers",
+    "service",
+    "safety",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
