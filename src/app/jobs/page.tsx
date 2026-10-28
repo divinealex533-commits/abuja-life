@@ -1216,7 +1216,12 @@ if (selectedJob.id === "firefighter") {
  if (selectedJob.id === "lawyer") {
   window.location.href = "/jobs/lawyer";
   return;
-}               
+} 
+
+if (selectedJob.id === "news-anchor") {
+  window.location.href = "/jobs/news-anchor";
+  return;
+}                
                 
 }}
             >
