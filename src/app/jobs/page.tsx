@@ -1222,6 +1222,11 @@ if (selectedJob.id === "news-anchor") {
   window.location.href = "/jobs/news-anchor";
   return;
 }                
+
+if (selectedJob.id === "restaurant-chef") {
+  window.location.href = "/jobs/restaurant-chef";
+  return;
+}
                 
 }}
             >
