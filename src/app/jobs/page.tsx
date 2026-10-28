@@ -1241,6 +1241,11 @@ if (selectedJob.id === "paramedic") {
 if (selectedJob.id === "makeup-artist") {
   window.location.href = "/jobs/makeup-artist";
   return;
+}  
+
+if (selectedJob.id === "wig-revamper") {
+  window.location.href = "/jobs/wig-revamper";
+  return;
 }                
                 
 }}
