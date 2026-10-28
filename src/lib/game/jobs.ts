@@ -505,6 +505,31 @@ export const JOBS: Job[] = [
     "beauty-business",
   ],
 },
+
+  {
+  id: "wig-revamper",
+  name: "Wig Revamper",
+  category: "creative",
+  description:
+    "Restore, repair, customize and style wigs for customers across Abuja while building a premium beauty business.",
+  locationId: "wuse",
+  startingPay: 6000,
+  maxPay: 60000,
+  energyCost: 22,
+  reputationGain: 12,
+  difficulty: "hard",
+  tags: [
+    "wig",
+    "wig-revamper",
+    "wig-stylist",
+    "hair",
+    "beauty",
+    "luxury",
+    "frontal",
+    "human-hair",
+    "beauty-business",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
