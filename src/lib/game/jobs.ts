@@ -412,6 +412,29 @@ export const JOBS: Job[] = [
     "reporter",
   ],
 },
+
+ {
+  id: "restaurant-chef",
+  name: "Restaurant Chef",
+  category: "food",
+  description:
+    "Run busy Abuja kitchens, prepare signature dishes, handle demanding customers and build a legendary culinary career.",
+  locationId: "wuse",
+  startingPay: 5000,
+  maxPay: 45000,
+  energyCost: 18,
+  reputationGain: 10,
+  difficulty: "hard",
+  tags: [
+    "chef",
+    "restaurant",
+    "cooking",
+    "food",
+    "kitchen",
+    "culinary",
+    "catering",
+  ],
+},
 ];
 
 export function getJobById(jobId: string): Job | undefined {
