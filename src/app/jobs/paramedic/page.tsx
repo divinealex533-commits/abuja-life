@@ -1,65 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import ParamedicPanel from "@/components/game/ParamedicPanel";
 import {
+  DEFAULT_PLAYER_STATE,
   PlayerGameState,
-  savePersistentPlayerState,
+  loadPersistentPlayerState,
 } from "@/lib/game/player";
-import { loadPlayerState } from "@/lib/game/playerStorage";
 
 export default function ParamedicJobPage() {
-  const router = useRouter();
-  const [player, setPlayer] = useState<PlayerGameState | null>(null);
+  const [player, setPlayer] =
+    useState<PlayerGameState>(DEFAULT_PLAYER_STATE);
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentPlayer = loadPlayerState();
+    let mounted = true;
 
-    if (!currentPlayer) {
-      router.push("/login");
-      return;
+    async function loadPlayer() {
+      const savedPlayer =
+        await loadPersistentPlayerState();
+
+      if (mounted) {
+        setPlayer(savedPlayer);
+        setLoading(false);
+      }
     }
 
-    setPlayer(currentPlayer);
-  }, [router]);
+    loadPlayer();
 
-  useEffect(() => {
-    if (!player) return;
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-    savePersistentPlayerState(player);
-  }, [player]);
-
-  if (!player) {
+  if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="text-center">
-          <div className="mb-4 text-5xl animate-pulse">🚑</div>
-          <p className="font-bold text-white">
-            Loading emergency services...
-          </p>
+      <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
+        <div className="mx-auto flex min-h-[70vh] max-w-6xl items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-red-500" />
+
+            <p className="text-sm font-semibold text-white/60">
+              Loading Paramedic Emergency Services...
+            </p>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/jobs")}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            ← Back to Jobs
-          </button>
-
-          <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-300">
-            🚑 Paramedic
-          </div>
-        </div>
-
+    <main className="min-h-screen bg-slate-950 px-3 py-6 text-white md:px-6 md:py-8">
+      <div className="mx-auto max-w-7xl">
         <ParamedicPanel
           player={player}
           setPlayer={setPlayer}
