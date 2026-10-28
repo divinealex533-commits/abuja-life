@@ -1232,6 +1232,11 @@ if (selectedJob.id === "cabin-crew") {
   window.location.href = "/jobs/cabin-crew";
   return;
 }                
+
+if (selectedJob.id === "paramedic") {
+  window.location.href = "/jobs/paramedic";
+  return;
+}
                 
 }}
             >
