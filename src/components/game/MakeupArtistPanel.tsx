@@ -16,6 +16,7 @@ import {
   savePlayerState,
   type PlayerGameState,
 } from "@/lib/game/player";
+import { recordBeautyJob } from "@/lib/game/beautyBusiness";
 
 const ENERGY_COST = 20;
 
@@ -119,15 +120,23 @@ export default function MakeupArtistPanel() {
     setMistakes(0);
     setCorrectActions(0);
     setTimeLeft(selectedSession.durationSeconds);
+
     setActivityLog([
       `Appointment started with ${client.name}.`,
       `Requested style: ${client.style.replace("-", " ")}.`,
     ]);
-    setMessage("The appointment has started. Follow the client's requested sequence.");
+
+    setMessage(
+      "The appointment has started. Follow the client's requested sequence."
+    );
+
     setScreen("game");
   }
 
-  function finishAppointment(completed: boolean, remainingTime: number) {
+  function finishAppointment(
+    completed: boolean,
+    remainingTime: number
+  ) {
     if (!selectedSession || !client || !player) return;
 
     const finalResult = calculateMakeupArtistResult({
@@ -154,6 +163,16 @@ export default function MakeupArtistPanel() {
 
     setPlayer(updatedPlayer);
     savePlayerState(updatedPlayer);
+
+    // Record the completed appointment in the Beauty Business progression.
+    recordBeautyJob({
+      type: "makeup",
+      title: `${client.name}'s ${selectedSession.title}`,
+      cashEarned: finalResult.cash,
+      xp: finalResult.xp,
+      reputation: finalResult.reputation,
+      score: finalResult.score,
+    });
 
     setResult(finalResult);
     setScreen("result");
@@ -189,7 +208,10 @@ export default function MakeupArtistPanel() {
 
     if (actionResult.success && action === expectedAction) {
       const nextCorrect = correctActions + 1;
-      const nextScore = Math.max(0, score + actionResult.score);
+      const nextScore = Math.max(
+        0,
+        score + actionResult.score
+      );
       const nextStep = currentStep + 1;
 
       setCorrectActions(nextCorrect);
@@ -209,6 +231,7 @@ export default function MakeupArtistPanel() {
       setCurrentStep(nextStep);
     } else {
       setMistakes((previous) => previous + 1);
+
       setScore((previous) =>
         Math.max(0, previous + actionResult.score)
       );
@@ -253,6 +276,7 @@ export default function MakeupArtistPanel() {
       <div className="min-h-[500px] flex items-center justify-center rounded-3xl border border-white/10 bg-black/30">
         <div className="text-center">
           <div className="text-4xl animate-pulse">💄</div>
+
           <p className="mt-3 text-white/60">
             Loading your beauty studio...
           </p>
@@ -289,6 +313,7 @@ export default function MakeupArtistPanel() {
             <div className="text-[10px] uppercase text-white/40">
               Cash
             </div>
+
             <div className="font-bold text-emerald-300">
               ₦{player.cash.toLocaleString()}
             </div>
@@ -298,6 +323,7 @@ export default function MakeupArtistPanel() {
             <div className="text-[10px] uppercase text-white/40">
               Energy
             </div>
+
             <div className="font-bold text-yellow-300">
               {player.energy}/{player.maxEnergy}
             </div>
@@ -307,6 +333,7 @@ export default function MakeupArtistPanel() {
             <div className="text-[10px] uppercase text-white/40">
               Reputation
             </div>
+
             <div className="font-bold text-pink-300">
               {player.reputation}
             </div>
@@ -319,7 +346,9 @@ export default function MakeupArtistPanel() {
         <div className="space-y-5">
           <div className="overflow-hidden rounded-3xl border border-pink-400/20 bg-gradient-to-r from-pink-500/15 via-purple-500/10 to-transparent p-6">
             <div className="max-w-2xl">
-              <div className="mb-3 text-4xl">💋✨</div>
+              <div className="mb-3 text-4xl">
+                💋✨
+              </div>
 
               <h2 className="text-2xl font-black sm:text-3xl">
                 Build your beauty empire.
@@ -336,7 +365,11 @@ export default function MakeupArtistPanel() {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-2xl">👰🏾</div>
-              <h3 className="mt-2 font-bold">Bridal</h3>
+
+              <h3 className="mt-2 font-bold">
+                Bridal
+              </h3>
+
               <p className="mt-1 text-xs text-white/50">
                 High-paying wedding appointments.
               </p>
@@ -344,7 +377,11 @@ export default function MakeupArtistPanel() {
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-2xl">📸</div>
-              <h3 className="mt-2 font-bold">Photoshoots</h3>
+
+              <h3 className="mt-2 font-bold">
+                Photoshoots
+              </h3>
+
               <p className="mt-1 text-xs text-white/50">
                 Create camera-ready looks.
               </p>
@@ -352,7 +389,11 @@ export default function MakeupArtistPanel() {
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-2xl">👑</div>
-              <h3 className="mt-2 font-bold">VIP Clients</h3>
+
+              <h3 className="mt-2 font-bold">
+                VIP Clients
+              </h3>
+
               <p className="mt-1 text-xs text-white/50">
                 Unlock premium bookings.
               </p>
@@ -428,6 +469,7 @@ export default function MakeupArtistPanel() {
                       <div className="text-[10px] text-white/40">
                         Client
                       </div>
+
                       <div className="mt-1 text-xs font-bold">
                         {bookingClient.name}
                       </div>
@@ -437,6 +479,7 @@ export default function MakeupArtistPanel() {
                       <div className="text-[10px] text-white/40">
                         Reward
                       </div>
+
                       <div className="mt-1 text-xs font-bold text-emerald-300">
                         ₦{bookingClient.rewardMin.toLocaleString()}+
                       </div>
@@ -446,6 +489,7 @@ export default function MakeupArtistPanel() {
                       <div className="text-[10px] text-white/40">
                         Time
                       </div>
+
                       <div className="mt-1 text-xs font-bold">
                         {formatTime(session.durationSeconds)}
                       </div>
@@ -459,319 +503,338 @@ export default function MakeupArtistPanel() {
       )}
 
       {/* BRIEFING */}
-      {screen === "briefing" && selectedSession && client && (
-        <div className="space-y-5">
-          <button
-            type="button"
-            onClick={() => setScreen("bookings")}
-            className="text-sm text-white/50 hover:text-white"
-          >
-            ← Back to bookings
-          </button>
-
-          <div className="rounded-3xl border border-pink-400/20 bg-pink-500/[0.06] p-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="text-4xl">💄</div>
-
-                <h2 className="mt-3 text-2xl font-black">
-                  {client.name}'s Appointment
-                </h2>
-
-                <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">
-                  {selectedSession.description}
-                </p>
-              </div>
-
-              <span
-                className={`w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase ${difficultyStyles[selectedSession.difficulty]}`}
-              >
-                {selectedSession.difficulty}
-              </span>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-black/20 p-4">
-                <div className="text-xs text-white/40">
-                  Requested Style
-                </div>
-                <div className="mt-1 font-bold capitalize">
-                  {client.style.replace("-", " ")}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-black/20 p-4">
-                <div className="text-xs text-white/40">
-                  Desired Finish
-                </div>
-                <div className="mt-1 font-bold">
-                  {client.preferredFinish}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-black/20 p-4">
-                <div className="text-xs text-white/40">
-                  Appointment Time
-                </div>
-                <div className="mt-1 font-bold">
-                  {formatTime(selectedSession.durationSeconds)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <h3 className="font-bold">
-              Makeup Plan
-            </h3>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {client.requiredSteps.map((step, index) => (
-                <span
-                  key={`${step}-${index}`}
-                  className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white/70"
-                >
-                  {index + 1}. {getMakeupActionLabel(step)}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
+      {screen === "briefing" &&
+        selectedSession &&
+        client && (
+          <div className="space-y-5">
             <button
               type="button"
               onClick={() => setScreen("bookings")}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 font-bold text-white/70 hover:bg-white/[0.08]"
+              className="text-sm text-white/50 hover:text-white"
             >
-              Choose Another
+              ← Back to bookings
             </button>
 
-            <button
-              type="button"
-              onClick={startSession}
-              disabled={player.energy < ENERGY_COST}
-              className="flex-1 rounded-2xl bg-pink-500 px-5 py-4 font-black shadow-lg shadow-pink-500/20 transition hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {player.energy < ENERGY_COST
-                ? `Need ${ENERGY_COST} Energy`
-                : "💄 Start Appointment"}
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="rounded-3xl border border-pink-400/20 bg-pink-500/[0.06] p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-4xl">
+                    💄
+                  </div>
 
-      {/* GAME */}
-      {screen === "game" && selectedSession && client && (
-        <div className="space-y-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-pink-300">
-                Live Appointment
+                  <h2 className="mt-3 text-2xl font-black">
+                    {client.name}'s Appointment
+                  </h2>
+
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">
+                    {selectedSession.description}
+                  </p>
+                </div>
+
+                <span
+                  className={`w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase ${difficultyStyles[selectedSession.difficulty]}`}
+                >
+                  {selectedSession.difficulty}
+                </span>
               </div>
 
-              <h2 className="mt-1 text-xl font-black">
-                {client.name} — {client.style.replace("-", " ")}
-              </h2>
-            </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-black/20 p-4">
+                  <div className="text-xs text-white/40">
+                    Requested Style
+                  </div>
 
-            <div
-              className={`rounded-2xl border px-4 py-3 text-center ${
-                timeLeft <= 15
-                  ? "border-red-400/30 bg-red-500/10 text-red-300"
-                  : "border-white/10 bg-white/[0.04]"
-              }`}
-            >
-              <div className="text-[10px] uppercase text-white/40">
-                Time Left
+                  <div className="mt-1 font-bold capitalize">
+                    {client.style.replace("-", " ")}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-black/20 p-4">
+                  <div className="text-xs text-white/40">
+                    Desired Finish
+                  </div>
+
+                  <div className="mt-1 font-bold">
+                    {client.preferredFinish}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-black/20 p-4">
+                  <div className="text-xs text-white/40">
+                    Appointment Time
+                  </div>
+
+                  <div className="mt-1 font-bold">
+                    {formatTime(selectedSession.durationSeconds)}
+                  </div>
+                </div>
               </div>
-
-              <div className="text-xl font-black">
-                ⏱️ {formatTime(timeLeft)}
-              </div>
-            </div>
-          </div>
-
-          {/* PROGRESS */}
-          <div>
-            <div className="mb-2 flex justify-between text-xs text-white/50">
-              <span>Makeup Progress</span>
-              <span>
-                {currentStep}/{requiredSteps.length}
-              </span>
             </div>
 
-            <div className="h-3 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-pink-500 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* CURRENT STEP */}
-          <div className="rounded-3xl border border-pink-400/20 bg-gradient-to-br from-pink-500/10 to-purple-500/5 p-6 text-center">
-            {currentStep < requiredSteps.length ? (
-              <>
-                <div className="text-5xl">💄</div>
-
-                <p className="mt-4 text-xs uppercase tracking-widest text-white/40">
-                  Current Step
-                </p>
-
-                <h3 className="mt-1 text-2xl font-black">
-                  {getMakeupActionLabel(
-                    requiredSteps[currentStep]
-                  )}
-                </h3>
-
-                <p className="mt-2 text-sm text-white/50">
-                  Choose the correct makeup action below.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="text-5xl">✨</div>
-                <h3 className="mt-3 text-2xl font-black">
-                  Finalizing Look
-                </h3>
-              </>
-            )}
-          </div>
-
-          {/* ACTIONS */}
-          <div>
-            <div className="mb-3 flex items-center justify-between">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
               <h3 className="font-bold">
-                Beauty Tools
+                Makeup Plan
               </h3>
 
-              <div className="text-xs text-white/40">
-                Score: {score} · Mistakes: {mistakes}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {ALL_ACTIONS.map((action) => {
-                const isExpected =
-                  requiredSteps[currentStep] === action;
-
-                return (
-                  <button
-                    key={action}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleAction(action)}
-                    className={`rounded-2xl border p-3 text-left transition active:scale-[0.98] ${
-                      isExpected
-                        ? "border-pink-400/30 bg-pink-500/10 hover:bg-pink-500/20"
-                        : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {client.requiredSteps.map((step, index) => (
+                  <span
+                    key={`${step}-${index}`}
+                    className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white/70"
                   >
-                    <div className="text-lg">
-                      {action === "cleanse"
-                        ? "🫧"
-                        : action === "prime"
-                        ? "✨"
-                        : action === "foundation"
-                        ? "🎨"
-                        : action === "concealer"
-                        ? "🖌️"
-                        : action === "contour"
-                        ? "🌓"
-                        : action === "blush"
-                        ? "🌸"
-                        : action === "brows"
-                        ? "👁️"
-                        : action === "eyeshadow"
-                        ? "🎨"
-                        : action === "eyeliner"
-                        ? "✏️"
-                        : action === "lashes"
-                        ? "👁️"
-                        : action === "highlighter"
-                        ? "✨"
-                        : action === "lip"
-                        ? "💋"
-                        : action === "setting-spray"
-                        ? "💦"
-                        : "🔍"}
-                    </div>
+                    {index + 1}. {getMakeupActionLabel(step)}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-                    <div className="mt-2 text-xs font-bold">
-                      {getMakeupActionLabel(action)}
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setScreen("bookings")}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 font-bold text-white/70 hover:bg-white/[0.08]"
+              >
+                Choose Another
+              </button>
+
+              <button
+                type="button"
+                onClick={startSession}
+                disabled={player.energy < ENERGY_COST}
+                className="flex-1 rounded-2xl bg-pink-500 px-5 py-4 font-black shadow-lg shadow-pink-500/20 transition hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {player.energy < ENERGY_COST
+                  ? `Need ${ENERGY_COST} Energy`
+                  : "💄 Start Appointment"}
+              </button>
             </div>
           </div>
+        )}
 
-          {/* STATUS */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-xs text-white/40">
-                Client Patience
+      {/* GAME */}
+      {screen === "game" &&
+        selectedSession &&
+        client && (
+          <div className="space-y-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-pink-300">
+                  Live Appointment
+                </div>
+
+                <h2 className="mt-1 text-xl font-black">
+                  {client.name} —{" "}
+                  {client.style.replace("-", " ")}
+                </h2>
               </div>
 
-              <div className="mt-2 text-lg font-black text-yellow-300">
-                {Math.max(
-                  0,
-                  client.patience - mistakes * 10
-                )}
-                %
+              <div
+                className={`rounded-2xl border px-4 py-3 text-center ${
+                  timeLeft <= 15
+                    ? "border-red-400/30 bg-red-500/10 text-red-300"
+                    : "border-white/10 bg-white/[0.04]"
+                }`}
+              >
+                <div className="text-[10px] uppercase text-white/40">
+                  Time Left
+                </div>
+
+                <div className="text-xl font-black">
+                  ⏱️ {formatTime(timeLeft)}
+                </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-xs text-white/40">
-                Correct Steps
+            {/* PROGRESS */}
+            <div>
+              <div className="mb-2 flex justify-between text-xs text-white/50">
+                <span>Makeup Progress</span>
+
+                <span>
+                  {currentStep}/{requiredSteps.length}
+                </span>
               </div>
 
-              <div className="mt-2 text-lg font-black text-emerald-300">
-                {correctActions}/{requiredSteps.length}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-xs text-white/40">
-                Appointment
-              </div>
-
-              <div className="mt-2 text-lg font-black text-pink-300">
-                {selectedSession.location}
+              <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-pink-500 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
-          </div>
 
-          {/* ACTIVITY */}
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-            <div className="mb-2 text-xs font-bold uppercase tracking-widest text-white/40">
-              Studio Activity
-            </div>
-
-            <div className="space-y-1 text-xs text-white/60">
-              {activityLog.length === 0 ? (
-                <div>Waiting for your first action...</div>
-              ) : (
-                activityLog.map((entry, index) => (
-                  <div key={`${entry}-${index}`}>
-                    {entry}
+            {/* CURRENT STEP */}
+            <div className="rounded-3xl border border-pink-400/20 bg-gradient-to-br from-pink-500/10 to-purple-500/5 p-6 text-center">
+              {currentStep < requiredSteps.length ? (
+                <>
+                  <div className="text-5xl">
+                    💄
                   </div>
-                ))
+
+                  <p className="mt-4 text-xs uppercase tracking-widest text-white/40">
+                    Current Step
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black">
+                    {getMakeupActionLabel(
+                      requiredSteps[currentStep]
+                    )}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-white/50">
+                    Choose the correct makeup action below.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-5xl">
+                    ✨
+                  </div>
+
+                  <h3 className="mt-3 text-2xl font-black">
+                    Finalizing Look
+                  </h3>
+                </>
               )}
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-pink-400/10 bg-pink-500/[0.04] p-4 text-sm text-white/60">
-            💡 Tip: Follow the requested sequence. Randomly
-            applying products will reduce your score.
-          </div>
+            {/* ACTIONS */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-bold">
+                  Beauty Tools
+                </h3>
 
-          <div className="text-center text-sm text-white/50">
-            {message}
+                <div className="text-xs text-white/40">
+                  Score: {score} · Mistakes: {mistakes}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {ALL_ACTIONS.map((action) => {
+                  const isExpected =
+                    requiredSteps[currentStep] === action;
+
+                  return (
+                    <button
+                      key={action}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => handleAction(action)}
+                      className={`rounded-2xl border p-3 text-left transition active:scale-[0.98] ${
+                        isExpected
+                          ? "border-pink-400/30 bg-pink-500/10 hover:bg-pink-500/20"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <div className="text-lg">
+                        {action === "cleanse"
+                          ? "🫧"
+                          : action === "prime"
+                          ? "✨"
+                          : action === "foundation"
+                          ? "🎨"
+                          : action === "concealer"
+                          ? "🖌️"
+                          : action === "contour"
+                          ? "🌓"
+                          : action === "blush"
+                          ? "🌸"
+                          : action === "brows"
+                          ? "👁️"
+                          : action === "eyeshadow"
+                          ? "🎨"
+                          : action === "eyeliner"
+                          ? "✏️"
+                          : action === "lashes"
+                          ? "👁️"
+                          : action === "highlighter"
+                          ? "✨"
+                          : action === "lip"
+                          ? "💋"
+                          : action === "setting-spray"
+                          ? "💦"
+                          : "🔍"}
+                      </div>
+
+                      <div className="mt-2 text-xs font-bold">
+                        {getMakeupActionLabel(action)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-xs text-white/40">
+                  Client Patience
+                </div>
+
+                <div className="mt-2 text-lg font-black text-yellow-300">
+                  {Math.max(
+                    0,
+                    client.patience - mistakes * 10
+                  )}
+                  %
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-xs text-white/40">
+                  Correct Steps
+                </div>
+
+                <div className="mt-2 text-lg font-black text-emerald-300">
+                  {correctActions}/{requiredSteps.length}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-xs text-white/40">
+                  Appointment
+                </div>
+
+                <div className="mt-2 text-lg font-black text-pink-300">
+                  {selectedSession.location}
+                </div>
+              </div>
+            </div>
+
+            {/* ACTIVITY */}
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-white/40">
+                Studio Activity
+              </div>
+
+              <div className="space-y-1 text-xs text-white/60">
+                {activityLog.length === 0 ? (
+                  <div>
+                    Waiting for your first action...
+                  </div>
+                ) : (
+                  activityLog.map((entry, index) => (
+                    <div key={`${entry}-${index}`}>
+                      {entry}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-pink-400/10 bg-pink-500/[0.04] p-4 text-sm text-white/60">
+              💡 Tip: Follow the requested sequence.
+              Randomly applying products will reduce your
+              score.
+            </div>
+
+            <div className="text-center text-sm text-white/50">
+              {message}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* RESULT */}
       {screen === "result" && result && (
@@ -809,6 +872,7 @@ export default function MakeupArtistPanel() {
               <div className="text-xs text-white/40">
                 Earnings
               </div>
+
               <div className="mt-1 text-xl font-black text-emerald-300">
                 +₦{result.cash.toLocaleString()}
               </div>
@@ -818,6 +882,7 @@ export default function MakeupArtistPanel() {
               <div className="text-xs text-white/40">
                 Reputation
               </div>
+
               <div className="mt-1 text-xl font-black text-pink-300">
                 {result.reputation >= 0 ? "+" : ""}
                 {result.reputation}
@@ -828,6 +893,7 @@ export default function MakeupArtistPanel() {
               <div className="text-xs text-white/40">
                 XP
               </div>
+
               <div className="mt-1 text-xl font-black text-purple-300">
                 +{result.xp}
               </div>
@@ -837,6 +903,7 @@ export default function MakeupArtistPanel() {
               <div className="text-xs text-white/40">
                 Score
               </div>
+
               <div className="mt-1 text-xl font-black">
                 {result.score}
               </div>
