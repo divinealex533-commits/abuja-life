@@ -16,6 +16,8 @@ import {
   type PlayerGameState,
 } from "@/lib/game/player";
 
+import { recordBeautyJob } from "@/lib/game/beautyBusiness";
+
 const ENERGY_COST = 22;
 
 type Screen = "base" | "orders" | "briefing" | "game" | "result";
@@ -232,49 +234,58 @@ export default function WigRevamperPanel() {
     ]);
   }
 
-  function finishOrder() {
-    if (
-      finishedRef.current ||
-      !selectedOrder ||
-      isFinishing
-    ) {
-      return;
-    }
-
-    finishedRef.current = true;
-    setIsFinishing(true);
-
-    const finalResult = calculateWigRevamperResult({
-      order: selectedOrder,
-      score,
-      correctActions,
-      mistakes,
-      ordersCompleted: 1,
-    });
-
-    setResult(finalResult);
-
-    if (player) {
-      const updatedPlayer: PlayerGameState = {
-        ...player,
-        cash: player.cash + finalResult.cash,
-        energy: Math.max(0, player.energy - ENERGY_COST),
-        reputation: Math.max(
-          0,
-          player.reputation + finalResult.reputation
-        ),
-        currentJobId: "wig-revamper",
-        jobExperience:
-          player.jobExperience + finalResult.xp,
-      };
-
-      setPlayer(updatedPlayer);
-      savePlayerState(updatedPlayer);
-    }
-
-    setScreen("result");
-    setIsFinishing(false);
+function finishOrder() {
+  if (
+    finishedRef.current ||
+    !selectedOrder ||
+    isFinishing
+  ) {
+    return;
   }
+
+  finishedRef.current = true;
+  setIsFinishing(true);
+
+  const finalResult = calculateWigRevamperResult({
+    order: selectedOrder,
+    score,
+    correctActions,
+    mistakes,
+    ordersCompleted: 1,
+  });
+
+  setResult(finalResult);
+
+  if (player) {
+    const updatedPlayer: PlayerGameState = {
+      ...player,
+      cash: player.cash + finalResult.cash,
+      energy: Math.max(0, player.energy - ENERGY_COST),
+      reputation: Math.max(
+        0,
+        player.reputation + finalResult.reputation
+      ),
+      currentJobId: "wig-revamper",
+      jobExperience: player.jobExperience + finalResult.xp,
+    };
+
+    setPlayer(updatedPlayer);
+    savePlayerState(updatedPlayer);
+
+    // Connect completed wig orders to the Beauty Business.
+    recordBeautyJob({
+      type: "wig-revamp",
+      title: selectedOrder.title,
+      cashEarned: finalResult.cash,
+      xp: finalResult.xp,
+      reputation: finalResult.reputation,
+      score: finalResult.score,
+    });
+  }
+
+  setScreen("result");
+  setIsFinishing(false);
+}
 
   function resetStudio() {
     setSelectedOrder(null);
