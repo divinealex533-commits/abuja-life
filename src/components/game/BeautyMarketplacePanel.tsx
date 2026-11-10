@@ -2,15 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  calculateBeautyOrder,
   calculateBeautyProfit,
+  calculateBeautyExperience,
+  calculateBeautyReputation,
   getAllBeautyCustomerOrders,
   getAllBeautyProducts,
   getAllBeautySuppliers,
   getBeautyProductsBySupplier,
   getBeautySupplier,
-  getBeautyBusinessRank,
-  getBeautyBusinessLevel,
   getBeautyInventoryCount,
   getDefaultBeautyBusinessState,
   purchaseBeautyStock,
@@ -25,6 +24,16 @@ import {
   savePlayerState,
   type PlayerGameState,
 } from "@/lib/game/player";
+import {
+  loadBeautyBusiness,
+  saveBeautyBusiness,
+  getDefaultBeautyBusinessState as getDefaultProgressionBusinessState,
+  recordBeautyStockPurchase,
+  recordBeautyCustomerOrder,
+  getBeautyBusinessLevel as getProgressionBusinessLevel,
+  getBeautyBusinessRank as getProgressionBusinessRank,
+  type BeautyBusinessState as BeautyProgressionState,
+} from "@/lib/game/beautyBusiness";
 
 type Screen =
   | "home"
@@ -90,6 +99,8 @@ export default function BeautyMarketplacePanel() {
   const [business, setBusiness] = useState<BeautyBusinessState>(
     getDefaultBeautyBusinessState()
   );
+  const [progression, setProgression] =
+    useState<BeautyProgressionState>(getDefaultProgressionBusinessState());
 
   const [suppliers] = useState<BeautySupplier[]>(() =>
     getAllBeautySuppliers()
@@ -144,6 +155,8 @@ export default function BeautyMarketplacePanel() {
       ...current,
       cash: loadedPlayer.cash,
     }));
+
+    setProgression(loadBeautyBusiness());
   }, []);
 
   const inventoryCount = useMemo(
@@ -152,13 +165,13 @@ export default function BeautyMarketplacePanel() {
   );
 
   const businessLevel = useMemo(
-    () => getBeautyBusinessLevel(business),
-    [business]
+    () => getProgressionBusinessLevel(progression),
+    [progression]
   );
 
   const businessRank = useMemo(
-    () => getBeautyBusinessRank(business),
-    [business]
+    () => getProgressionBusinessRank(progression),
+    [progression]
   );
 
   const filteredProducts = useMemo(() => {
@@ -240,6 +253,16 @@ export default function BeautyMarketplacePanel() {
     setBusiness(result.state);
     syncPlayerCash(result.state.cash);
 
+    const updatedProgression = recordBeautyStockPurchase(
+      loadBeautyBusiness(),
+      {
+        productName: selectedProduct.name,
+        amount: totalCost,
+      }
+    );
+    saveBeautyBusiness(updatedProgression);
+    setProgression(updatedProgression);
+
     showNotice(
       "success",
       `${quantity} × ${selectedProduct.name} added to your beauty inventory.`
@@ -310,6 +333,16 @@ export default function BeautyMarketplacePanel() {
     setBusiness(result.state);
     syncPlayerCash(result.state.cash);
 
+    const updatedProgression = recordBeautyStockPurchase(
+      loadBeautyBusiness(),
+      {
+        productName: product.name,
+        amount: product.supplierPrice,
+      }
+    );
+    saveBeautyBusiness(updatedProgression);
+    setProgression(updatedProgression);
+
     setOrderStates((current) => ({
       ...current,
       [order.id]: "stock-purchased",
@@ -346,6 +379,35 @@ export default function BeautyMarketplacePanel() {
 
     setBusiness(result.state);
     syncPlayerCash(result.state.cash);
+
+    const deliveredProfit = result.profit ?? 0;
+    const isVIP = Boolean(order.isVIP);
+    const businessXP = calculateBeautyExperience(
+      deliveredProfit,
+      100,
+      isVIP
+    );
+    const businessReputation = calculateBeautyReputation(
+      100,
+      isVIP
+    );
+
+    const progressionResult = recordBeautyCustomerOrder(
+      loadBeautyBusiness(),
+      {
+        orderId: order.id,
+        customerName: order.customerName,
+        revenue: order.sellingPrice + order.deliveryFee,
+        expenses:
+          order.sellingPrice + order.deliveryFee - deliveredProfit,
+        xp: businessXP,
+        reputation: businessReputation,
+        isVIP,
+      }
+    );
+
+    saveBeautyBusiness(progressionResult.state);
+    setProgression(progressionResult.state);
 
     setOrderStates((current) => ({
       ...current,
@@ -586,7 +648,7 @@ export default function BeautyMarketplacePanel() {
         {suppliers.map((supplier) => {
           const supplierProducts = getBeautyProductsBySupplier(
             supplier.id
-          );
+                    );
 
           return (
             <div
@@ -936,7 +998,7 @@ export default function BeautyMarketplacePanel() {
               />
 
               <Row
-                label="Estimated profit"
+                                label="Estimated profit"
                 value={formatNGN(estimatedProfit)}
                 highlight
               />
