@@ -112,7 +112,30 @@ revoke all on function public.abuja_add_weekend_points(uuid, date, integer) from
 grant execute on function public.abuja_add_weekend_points(uuid, date, integer) to service_role;
 
 -- ------------------------------------------------------------
--- 4. Private replies to announcements
+-- 4a. Announcements (used by Admin → Announcements).
+--     Created here in case it was never set up.
+-- ------------------------------------------------------------
+create table if not exists public.admin_announcements (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null,
+  message     text not null,
+  type        text not null default 'info',
+  priority    text not null default 'normal'
+              check (priority in ('normal', 'important', 'urgent')),
+  is_active   boolean not null default true,
+  created_by  uuid,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz
+);
+
+create index if not exists admin_announcements_active_idx
+  on public.admin_announcements (is_active, created_at desc);
+
+alter table public.admin_announcements enable row level security;
+-- No policies: the server reads and writes announcements.
+
+-- ------------------------------------------------------------
+-- 4b. Private replies to announcements
 -- ------------------------------------------------------------
 create table if not exists public.announcement_replies (
   id                uuid primary key default gen_random_uuid(),
