@@ -139,6 +139,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "Her son came back shouting that you asked for her PIN. Market leaders warned you.",
               reputationLoss: 6,
               payLoss: 1,
+              charge: "pin_misuse",
             },
           },
           {
@@ -263,6 +264,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "Another mechanic fixed it with a ₦15,000 fan. He came back with his boys.",
               reputationLoss: 8,
               payLoss: 1,
+              charge: "fraud_parts",
             },
           },
         ],
@@ -296,6 +298,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "The pads wore out in two weeks. He found out and reported you to the village chairman.",
               reputationLoss: 10,
               payLoss: 1,
+              charge: "fraud_parts",
             },
           },
           {
@@ -447,6 +450,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "It was a monitoring team. Your keke got impounded for the afternoon.",
               reputationLoss: 2,
               payLoss: 1,
+              charge: "bribery",
             },
           },
           {
@@ -532,6 +536,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "The phone was tracked to you. Police case, and everyone on the route knows.",
               reputationLoss: 12,
               payLoss: 1,
+              charge: "theft",
             },
           },
           {
@@ -826,6 +831,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "It was a pharmacy council inspector. Warning letter and a fine.",
               reputationLoss: 6,
               payLoss: 1,
+              charge: "illegal_dispensing",
             },
           },
           {
@@ -869,6 +875,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "A customer got worse. The drugs were fake. Your pharmacy was sealed for the day.",
               reputationLoss: 14,
               payLoss: 1,
+              charge: "fake_drugs",
             },
           },
           {
@@ -1053,6 +1060,7 @@ export const STANDARD_CAREERS: Career[] = [
               failText: "The real owner showed up. The 'landlord' vanished with the rent. The tenant is blaming you.",
               reputationLoss: 15,
               payLoss: 1,
+              charge: "property_fraud",
             },
           },
           {

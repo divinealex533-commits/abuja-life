@@ -15,6 +15,7 @@ import NearbyPlayersPanel from "@/components/game/NearbyPlayersPanel";
 import LocationChatPanel from "@/components/game/LocationChatPanel";
 
 import DailyRewardPanel from "@/components/game/DailyRewardPanel";
+import MyCharacterCard from "@/components/character/MyCharacterCard";
 import VipSection from "@/components/vip/VipSection";
 import SponsoredBusinesses from "@/components/business/SponsoredBusinesses";
 import WeekendRewardPanel from "@/components/vip/WeekendRewardPanel";
@@ -502,6 +503,20 @@ const cityActivities = [
   </Link>
 
   <Link
+    href="/map"
+    className="rounded-xl border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-xs font-black text-sky-300 transition hover:bg-sky-400/20"
+  >
+    🗺️ Map
+  </Link>
+
+  <Link
+    href="/court"
+    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black text-white/80 transition hover:bg-white/10"
+  >
+    ⚖️ Court
+  </Link>
+
+  <Link
     href="/style"
     className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black text-fuchsia-300 transition hover:bg-fuchsia-400/20"
   >
@@ -566,6 +581,15 @@ const cityActivities = [
               </Link>
               <Link href="/directory" className="rounded-lg border border-white/10 bg-white/5 p-3 text-left font-black">
                 🏪 Abuja Businesses
+              </Link>
+              <Link href="/character" className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3 text-left font-black text-emerald-300">
+                🧍🏾 My Character
+              </Link>
+              <Link href="/court" className="rounded-lg border border-white/10 bg-white/5 p-3 text-left font-black">
+                ⚖️ Court &amp; EFCC
+              </Link>
+              <Link href="/map" className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-left font-black text-sky-300">
+                🗺️ Nigeria Map
               </Link>
               <button className="rounded-lg bg-white/5 p-3 text-left">
                 🌍 World
@@ -1436,6 +1460,7 @@ const cityActivities = [
   </div>
 
   <div className="mt-6">
+    <MyCharacterCard />
     <VipSection area="hub" />
   </div>
 

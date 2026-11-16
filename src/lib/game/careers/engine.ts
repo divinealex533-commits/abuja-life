@@ -158,6 +158,7 @@ export function computeShift(
       pay: Math.round(pay),
       reputation: rep,
       xp: gainedXp,
+      ...(!success && choice.risk?.charge ? { charge: choice.risk.charge } : {}),
     };
   });
 

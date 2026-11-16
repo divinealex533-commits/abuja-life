@@ -13,6 +13,8 @@ export interface ChoiceRisk {
   reputationLoss: number;
   /** Share of this decision's pay lost (0–1). Defaults to 1. */
   payLoss?: number;
+  /** If set, getting caught opens a court case with this charge (see lib/justice). */
+  charge?: string;
 }
 
 export interface ShiftChoice {
@@ -84,6 +86,8 @@ export interface DecisionResult {
   pay: number;
   reputation: number;
   xp: number;
+  /** Charge key when this decision got the player arrested. */
+  charge?: string;
 }
 
 export interface CityEvent {
