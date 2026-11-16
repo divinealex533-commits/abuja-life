@@ -7,12 +7,14 @@
 
 import { CAREERS } from "@/lib/game/careers";
 import { JOBS } from "@/lib/game/jobs";
+import { AD_PLAN_ORDER, AD_PLANS } from "@/lib/business/catalog";
+import { COSMETICS } from "@/lib/cosmetics/catalog";
 import { STORE_PRODUCTS } from "@/lib/vip/catalog";
 import { VIP_VENUES } from "@/lib/vip/venues";
 
 export type PriceMethod = "cash" | "naira" | "free";
 
-export type PriceGroup = "store" | "venue" | "career" | "job";
+export type PriceGroup = "store" | "ad" | "cosmetic" | "venue" | "career" | "job";
 
 export interface PricedItem {
   key: string; // e.g. "venue:hotel_vip_room"
@@ -58,6 +60,28 @@ export const PRICED_ITEMS: PricedItem[] = [
     allowedMethods: ["naira"],
     defaultMethod: "naira",
     defaultAmount: product.priceNaira,
+  })),
+
+  ...AD_PLAN_ORDER.map<PricedItem>((planId) => ({
+    key: `ad:${planId}`,
+    group: "ad",
+    id: planId,
+    name: `Business ad — ${AD_PLANS[planId].name}`,
+    subtitle: `${AD_PLANS[planId].days} days for a real business`,
+    allowedMethods: ["naira"],
+    defaultMethod: "naira",
+    defaultAmount: AD_PLANS[planId].defaultPriceNaira,
+  })),
+
+  ...COSMETICS.map<PricedItem>((cosmetic) => ({
+    key: `cosmetic:${cosmetic.id}`,
+    group: "cosmetic",
+    id: cosmetic.id,
+    name: cosmetic.name,
+    subtitle: "Style shop · looks only",
+    allowedMethods: ["naira", "cash", "free"],
+    defaultMethod: "naira",
+    defaultAmount: cosmetic.defaultPriceNaira,
   })),
 
   ...VIP_VENUES.map<PricedItem>((venue) => ({
@@ -106,6 +130,14 @@ export const PRICE_GROUP_TITLES: Record<PriceGroup, { title: string; help: strin
   store: {
     title: "VIP store & bundles (real money)",
     help: "What players pay in Naira through Paystack.",
+  },
+  ad: {
+    title: "Business advertising (real money)",
+    help: "What real Abuja businesses pay you per 30 days to appear in the game.",
+  },
+  cosmetic: {
+    title: "Style shop",
+    help: "Name colours, avatar frames and titles. Looks only.",
   },
   venue: {
     title: "VIP places",

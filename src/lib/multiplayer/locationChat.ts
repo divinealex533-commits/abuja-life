@@ -12,6 +12,9 @@ export interface LocationChatMessage {
   displayName: string;
   avatar: string;
   vipTier: "silver" | "gold" | "diamond" | null;
+  nameStyle: string | null;
+  avatarFrame: string | null;
+  title: string | null;
 }
 
 const supabase = createClient();
@@ -52,7 +55,7 @@ export async function getLocationChatMessages(
 
   const { data: profiles, error: profileError } = await supabase
     .from("player_profiles")
-    .select("id, username, display_name, avatar")
+    .select("id, username, display_name, avatar, name_style, avatar_frame, title")
     .in("id", playerIds);
 
   if (profileError) {
@@ -76,6 +79,9 @@ export async function getLocationChatMessages(
         username: profile.username,
         displayName: profile.display_name,
         avatar: profile.avatar ?? "🧑🏽",
+        nameStyle: profile.name_style ?? null,
+        avatarFrame: profile.avatar_frame ?? null,
+        title: profile.title ?? null,
       },
     ])
   );
@@ -93,6 +99,9 @@ export async function getLocationChatMessages(
       displayName: profile?.displayName ?? "Unknown Player",
       avatar: profile?.avatar ?? "🧑🏽",
       vipTier: badgeMap.get(item.player_id) ?? null,
+      nameStyle: profile?.nameStyle ?? null,
+      avatarFrame: profile?.avatarFrame ?? null,
+      title: profile?.title ?? null,
     };
   });
 }

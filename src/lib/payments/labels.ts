@@ -1,5 +1,7 @@
 // Abuja Life — friendly names for purchased product IDs (client-safe).
 
+import { AD_PLANS, isAdPlan } from "@/lib/business/catalog";
+import { getCosmetic } from "@/lib/cosmetics/catalog";
 import { getCareer } from "@/lib/game/careers";
 import { getJobById } from "@/lib/game/jobs";
 import { getProduct } from "@/lib/vip/catalog";
@@ -23,6 +25,18 @@ export function describePurchase(
     return career
       ? { name: `${career.name} licence`, href: `/careers/${career.id}`, cta: "Start working" }
       : null;
+  }
+
+  if (prefix === "ad") {
+    const planId = rest[0] ?? "";
+    return isAdPlan(planId)
+      ? { name: `${AD_PLANS[planId].name} advert`, href: "/advertise/my", cta: "See my business" }
+      : null;
+  }
+
+  if (prefix === "cosmetic") {
+    const cosmetic = getCosmetic(id);
+    return cosmetic ? { name: cosmetic.name, href: "/style", cta: "Wear it now" } : null;
   }
 
   if (prefix === "job") {

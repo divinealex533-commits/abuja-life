@@ -83,13 +83,13 @@ export default function Home() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <button className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold hover:bg-white/5">
+            <a href="/login" className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold hover:bg-white/5">
               Login
-            </button>
+            </a>
 
-            <button className="rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-bold text-[#07110f] shadow-lg shadow-emerald-500/20 hover:bg-emerald-300">
+            <a href="/register" className="rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-bold text-[#07110f] shadow-lg shadow-emerald-500/20 hover:bg-emerald-300">
               Create Character
-            </button>
+            </a>
           </div>
 
           <button
@@ -108,9 +108,9 @@ export default function Home() {
               <a href="#locations">Abuja</a>
               <a href="#events">Events</a>
 
-              <button className="mt-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#07110f]">
+              <a href="/register" className="mt-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#07110f]">
                 Create Character
-              </button>
+              </a>
             </div>
           </div>
         )}
@@ -142,13 +142,13 @@ export default function Home() {
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <button className="rounded-2xl bg-emerald-400 px-7 py-4 font-black text-[#07110f] shadow-xl shadow-emerald-500/20 transition hover:-translate-y-1 hover:bg-emerald-300">
+              <a href="/register" className="rounded-2xl bg-emerald-400 px-7 py-4 font-black text-[#07110f] shadow-xl shadow-emerald-500/20 transition hover:-translate-y-1 hover:bg-emerald-300">
                 START YOUR LIFE →
-              </button>
+              </a>
 
-              <button className="rounded-2xl border border-white/15 bg-white/5 px-7 py-4 font-bold backdrop-blur transition hover:bg-white/10">
+              <a href="#locations" className="rounded-2xl border border-white/15 bg-white/5 px-7 py-4 font-bold backdrop-blur transition hover:bg-white/10">
                 EXPLORE ABUJA
-              </button>
+              </a>
             </div>
 
             <div className="mt-10 flex flex-wrap gap-8 text-sm text-white/45">
@@ -373,9 +373,9 @@ export default function Home() {
             step into a city built to grow.
           </p>
 
-          <button className="mt-8 rounded-2xl bg-emerald-400 px-8 py-4 font-black text-[#07110f] shadow-xl shadow-emerald-500/20 hover:bg-emerald-300">
+          <a href="/register" className="mt-8 rounded-2xl bg-emerald-400 px-8 py-4 font-black text-[#07110f] shadow-xl shadow-emerald-500/20 hover:bg-emerald-300">
             CREATE YOUR CHARACTER →
-          </button>
+          </a>
         </div>
       </section>
 
@@ -386,9 +386,10 @@ export default function Home() {
             © {new Date().getFullYear()} Abuja Life. Your city. Your story.
           </div>
 
-          <div className="flex gap-6">
-            <span>Abuja</span>
-            <span>Virtual World</span>
+          <div className="flex flex-wrap gap-6">
+            <a href="/advertise" className="font-bold text-emerald-300 hover:text-emerald-200">Advertise your business</a>
+            <a href="/directory" className="hover:text-white">Abuja businesses</a>
+            <a href="/vip" className="hover:text-white">VIP</a>
             <span>Built for Nigeria 🇳🇬</span>
           </div>
         </div>

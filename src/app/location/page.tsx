@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import VipSection from "@/components/vip/VipSection";
+import SponsoredBusinesses from "@/components/business/SponsoredBusinesses";
+import { districtFromLocationName } from "@/lib/business/catalog";
 type Activity = {
   title: string;
   icon: string;
@@ -513,6 +515,11 @@ export default function LocationPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* REAL BUSINESSES IN THIS DISTRICT */}
+      <section className="mx-auto max-w-7xl px-5 pt-8">
+        <SponsoredBusinesses district={districtFromLocationName(locationName)} />
       </section>
 
       {/* VIP LOUNGES */}

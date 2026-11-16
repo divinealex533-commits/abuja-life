@@ -9,6 +9,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { AD_PLANS, isAdPlan } from "@/lib/business/catalog";
+import { getCosmetic } from "@/lib/cosmetics/catalog";
 import { getCareer } from "@/lib/game/careers";
 import { getJobById } from "@/lib/game/jobs";
 import { getPrice } from "@/lib/pricing/server";
@@ -16,7 +18,7 @@ import { getProduct, tierAtLeast, VIP_TIERS, type VipTier } from "@/lib/vip/cata
 import { getVipStatus } from "@/lib/vip/server";
 import { getVenue } from "@/lib/vip/venues";
 
-export type PurchaseKind = "product" | "venue" | "career" | "job";
+export type PurchaseKind = "product" | "venue" | "career" | "job" | "ad" | "cosmetic";
 
 export interface ResolvedPurchase {
   kind: PurchaseKind;
@@ -24,7 +26,7 @@ export interface ResolvedPurchase {
   name: string;
   description: string;
   priceNaira: number;
-  purpose: "vip" | "wallet" | "other";
+  purpose: "vip" | "wallet" | "other" | "business_promotion";
   oncePerAccount: boolean;
 }
 
@@ -38,6 +40,8 @@ export function parsePurchaseKind(productId: string): { kind: PurchaseKind; id: 
   if (prefix === "venue" && id) return { kind: "venue", id };
   if (prefix === "career" && id) return { kind: "career", id };
   if (prefix === "job" && id) return { kind: "job", id };
+  if (prefix === "ad" && id) return { kind: "ad", id };
+  if (prefix === "cosmetic" && id) return { kind: "cosmetic", id };
   return { kind: "product", id: productId };
 }
 
@@ -119,6 +123,58 @@ export async function resolvePurchase(
         productId: `career:${career.id}`,
         name: `${career.name} licence`,
         description: "Unlocks this career permanently.",
+        priceNaira: price.amount,
+        purpose: "other",
+        oncePerAccount: true,
+      },
+    };
+  }
+
+  if (kind === "ad") {
+    // productId: "ad:<plan>:<listingId>"
+    const [planId, listingId] = id.split(":");
+    if (!planId || !listingId || !isAdPlan(planId)) {
+      return { ok: false, error: "Unknown advert plan.", status: 400 };
+    }
+    const price = await getPrice(admin, `ad:${planId}`);
+    if (!price || !price.active || price.method !== "naira") return notForSale;
+
+    const { data: listing } = await admin
+      .from("business_listings")
+      .select("id, name, owner_id, status")
+      .eq("id", listingId)
+      .maybeSingle();
+
+    if (!listing || listing.owner_id !== userId) {
+      return { ok: false, error: "Business listing not found.", status: 404 };
+    }
+
+    return {
+      ok: true,
+      purchase: {
+        kind,
+        productId: `ad:${planId}:${listing.id}`,
+        name: `${AD_PLANS[planId].name} — ${listing.name}`,
+        description: `${AD_PLANS[planId].days} days of advertising in Abuja Life`,
+        priceNaira: price.amount,
+        purpose: "business_promotion",
+        oncePerAccount: false,
+      },
+    };
+  }
+
+  if (kind === "cosmetic") {
+    const cosmetic = getCosmetic(id);
+    if (!cosmetic) return { ok: false, error: "Unknown style item.", status: 400 };
+    const price = await getPrice(admin, `cosmetic:${id}`);
+    if (!price || !price.active || price.method !== "naira") return notForSale;
+    return {
+      ok: true,
+      purchase: {
+        kind,
+        productId: `cosmetic:${cosmetic.id}`,
+        name: cosmetic.name,
+        description: "Style shop item (looks only)",
         priceNaira: price.amount,
         purpose: "other",
         oncePerAccount: true,

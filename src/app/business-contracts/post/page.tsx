@@ -36,6 +36,7 @@ export default function PostBusinessContractPage() {
   const [locationId, setLocationId] = useState("garki");
 
   const [reward, setReward] = useState("");
+  const [feePercent, setFeePercent] = useState(0);
   const [reputationReward, setReputationReward] =
     useState("5");
   const [experienceReward, setExperienceReward] =
@@ -51,6 +52,20 @@ export default function PostBusinessContractPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Marketplace fee set by the admin (Admin → Earnings).
+  useEffect(() => {
+    getSupabase()
+      .from("admin_game_settings")
+      .select("marketplace_fee_percent")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }: { data: { marketplace_fee_percent?: number } | null }) =>
+        setFeePercent(Number(data?.marketplace_fee_percent ?? 0))
+      );
+  }, []);
+
+  const feeAmount = Math.ceil((Number(reward) || 0) * feePercent / 100);
 
   const selectedBusiness = useMemo(
     () =>
@@ -198,7 +213,7 @@ export default function PostBusinessContractPage() {
 
     if (
       walletBalance !== null &&
-      numericReward > walletBalance
+      numericReward + Math.ceil(numericReward * feePercent / 100) > walletBalance
     ) {
       setError(
         "You do not have enough money in your wallet to secure this contract."
@@ -283,9 +298,10 @@ export default function PostBusinessContractPage() {
       );
 
       setSuccess(
-        `Contract posted successfully! ₦${Math.round(
-          numericReward
-        ).toLocaleString()} has been secured in escrow.`
+        result?.message ||
+          `Contract posted successfully! ₦${Math.round(
+            numericReward
+          ).toLocaleString()} has been secured in escrow.`
       );
 
       setTitle("");
@@ -539,6 +555,12 @@ export default function PostBusinessContractPage() {
                     className="w-full rounded-2xl border border-white/10 bg-black/30 py-3 pl-9 pr-4 text-white outline-none focus:border-emerald-400"
                   />
                 </div>
+                {feePercent > 0 && Number(reward) > 0 && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    + {feePercent}% marketplace fee: ₦{feeAmount.toLocaleString()} · You pay ₦
+                    {(Math.round(Number(reward)) + feeAmount).toLocaleString()} in total
+                  </p>
+                )}
               </div>
 
               <div>

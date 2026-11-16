@@ -16,7 +16,9 @@ import LocationChatPanel from "@/components/game/LocationChatPanel";
 
 import DailyRewardPanel from "@/components/game/DailyRewardPanel";
 import VipSection from "@/components/vip/VipSection";
+import SponsoredBusinesses from "@/components/business/SponsoredBusinesses";
 import WeekendRewardPanel from "@/components/vip/WeekendRewardPanel";
+import RewardedAdPanel from "@/components/ads/RewardedAdPanel";
 
 import NPCInteractionPanel from "@/components/game/NPCInteractionPanel";
 
@@ -493,6 +495,20 @@ const cityActivities = [
 
           <div className="hidden items-center gap-3 md:flex">
   <Link
+    href="/invite"
+    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black text-white/80 transition hover:bg-white/10"
+  >
+    🤝 Invite
+  </Link>
+
+  <Link
+    href="/style"
+    className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black text-fuchsia-300 transition hover:bg-fuchsia-400/20"
+  >
+    ✨ Style
+  </Link>
+
+  <Link
     href="/careers"
     className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-300 transition hover:bg-emerald-400/20"
   >
@@ -541,6 +557,15 @@ const cityActivities = [
                 className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3 text-left font-black text-emerald-300"
               >
                 💼 Careers
+              </Link>
+              <Link href="/style" className="rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 p-3 text-left font-black text-fuchsia-300">
+                ✨ Style Shop
+              </Link>
+              <Link href="/invite" className="rounded-lg border border-white/10 bg-white/5 p-3 text-left font-black">
+                🤝 Invite Friends
+              </Link>
+              <Link href="/directory" className="rounded-lg border border-white/10 bg-white/5 p-3 text-left font-black">
+                🏪 Abuja Businesses
               </Link>
               <button className="rounded-lg bg-white/5 p-3 text-left">
                 🌍 World
@@ -1403,11 +1428,19 @@ const cityActivities = [
 </div>
 
   <div className="mt-6">
+    <RewardedAdPanel />
+  </div>
+
+  <div className="mt-6">
     <WeekendRewardPanel />
   </div>
 
   <div className="mt-6">
     <VipSection area="hub" />
+  </div>
+
+  <div className="mt-6">
+    <SponsoredBusinesses featured limit={4} />
   </div>
 
   <div
