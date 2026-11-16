@@ -184,7 +184,7 @@ export default function JournalistPanel({
     );
   }
 
-  const stepInfo = {
+  const stepDetails = {
     research: {
       title: "Investigate the Story",
       description:
@@ -217,7 +217,12 @@ export default function JournalistPanel({
       setValue: setSpeed,
       label: "Publishing Speed",
     },
-  }[step as keyof typeof stepInfo];
+  };
+
+  const stepInfo =
+    step in stepDetails
+      ? stepDetails[step as keyof typeof stepDetails]
+      : null;
 
   if (!stepInfo) return null;
 
