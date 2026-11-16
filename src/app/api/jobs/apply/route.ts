@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getJobById } from "@/lib/game/jobs";
+import { getLegalStatus, workBlockReason } from "@/lib/justice/server";
 import { getPrice } from "@/lib/pricing/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
 
   const admin = createAdminSupabaseClient();
   await admin.rpc("abuja_ensure_player_row", { p_user_id: user.id });
+
+  const blocked = workBlockReason(await getLegalStatus(admin, user.id));
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
   const { data: state } = await admin
     .from("player_game_states")

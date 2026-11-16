@@ -30,7 +30,7 @@ type Phase =
   | { kind: "overview" }
   | { kind: "shift"; scenarios: ShiftScenario[]; index: number; decisions: ShiftDecision[] }
   | { kind: "submitting" }
-  | { kind: "report"; result: ShiftResult; rankTitle: string };
+  | { kind: "report"; result: ShiftResult; rankTitle: string; newCases: string[] };
 
 export default function CareerPage() {
   const params = useParams<{ careerId: string }>();
@@ -176,7 +176,7 @@ export default function CareerPage() {
       }
       setCareerXp(data.careerXp);
       setShifts((s) => s + 1);
-      setPhase({ kind: "report", result: data.result, rankTitle: data.rankTitle });
+      setPhase({ kind: "report", result: data.result, rankTitle: data.rankTitle, newCases: data.newCases ?? [] });
     } catch {
       setError("Network error. Your shift wasn't counted — try again.");
       setPhase({ kind: "overview" });
@@ -336,6 +336,7 @@ export default function CareerPage() {
             </div>
           ) : (
             <ShiftReport
+              newCases={phase.newCases}
               result={phase.result}
               rankTitle={phase.rankTitle}
               accentButton={accent.button}
@@ -431,6 +432,7 @@ function ScenarioCard({
 }
 
 function ShiftReport({
+  newCases,
   result,
   rankTitle,
   accentButton,
@@ -438,6 +440,7 @@ function ShiftReport({
   onNext,
   onDone,
 }: {
+  newCases: string[];
   result: ShiftResult;
   rankTitle: string;
   accentButton: string;
@@ -447,6 +450,20 @@ function ShiftReport({
 }) {
   return (
     <div className="space-y-4">
+      {newCases.length > 0 && (
+        <div className="rounded-3xl border border-red-500/40 bg-red-500/10 p-6">
+          <div className="text-3xl">🚨</div>
+          <h2 className="mt-2 text-xl font-black text-red-200">You&apos;ve been charged</h2>
+          <ul className="mt-2 list-disc pl-5 text-sm text-red-100/80">
+            {newCases.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-white/60">You have 48 hours to appear in court, or a bench warrant stops you from working.</p>
+          <Link href="/court" className="mt-4 inline-block rounded-2xl bg-red-500 px-5 py-3 text-xs font-black text-white">GO TO COURT →</Link>
+        </div>
+      )}
+
       {result.promoted && (
         <div className="rounded-3xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 to-transparent p-6 text-center">
           <div className="text-5xl">🎉</div>

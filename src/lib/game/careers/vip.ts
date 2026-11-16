@@ -54,6 +54,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "Customs seized the car from your buyer. You had to refund him in full.",
               reputationLoss: 12,
               payLoss: 1,
+              charge: "smuggling",
             },
           },
           {
@@ -434,6 +435,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "EFCC opened a file. You're recalled to headquarters for questioning.",
               reputationLoss: 15,
               payLoss: 1,
+              charge: "official_corruption",
             },
           },
           {
@@ -519,6 +521,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "Three 'staff' disappeared after arrival. Interpol is asking how they got visas.",
               reputationLoss: 14,
               payLoss: 1,
+              charge: "visa_racket",
             },
           },
           {
@@ -671,6 +674,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "They abandoned the project halfway. Auditors are reviewing your recommendation.",
               reputationLoss: 12,
               payLoss: 1,
+              charge: "contract_fraud",
             },
           },
           {
@@ -729,6 +733,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "A rival group blocked the site the next week, demanding the same money.",
               reputationLoss: 4,
               payLoss: 0.7,
+              charge: "bribery",
             },
           },
         ],
@@ -762,6 +767,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "Satellite data exposed the flaring. Regulator fine and an internal investigation.",
               reputationLoss: 13,
               payLoss: 1,
+              charge: "false_reporting",
             },
           },
           {
@@ -871,6 +877,7 @@ export const VIP_CAREERS: Career[] = [
               failText: "CBN fined you and froze new sign-ups. Headlines everywhere.",
               reputationLoss: 10,
               payLoss: 1,
+              charge: "regulatory_breach",
             },
           },
           {

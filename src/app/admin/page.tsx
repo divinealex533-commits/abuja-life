@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import CommandCenter from "@/components/admin/CommandCenter";
+
 const adminSections = [
   {
     icon: "📢",
@@ -41,10 +43,17 @@ const adminSections = [
   },
   {
     icon: "🧪",
-    title: "Testing Center",
+    title: "Test Center & Errors",
     description:
-      "Test Abuja Life systems before launch and monitor important game functionality.",
+      "Health checks, the live error log, and tools to test the game as a player.",
     href: "/admin/testing",
+  },
+  {
+    icon: "⚖️",
+    title: "Courts & EFCC",
+    description:
+      "See every court case, who is in jail, and pardon or dismiss cases.",
+    href: "/admin/courts",
   },
 ];
 
@@ -225,6 +234,8 @@ export default function AdminPage() {
           </div>
         </div>
       </section>
+
+      <CommandCenter />
 
       {/* DASHBOARD DATA STATUS */}
       {error && (

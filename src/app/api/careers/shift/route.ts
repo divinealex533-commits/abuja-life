@@ -8,6 +8,7 @@ import {
   rankIndexForXp,
 } from "@/lib/game/careers/engine";
 import type { ShiftDecision } from "@/lib/game/careers/types";
+import { fileCase, getLegalStatus, workBlockReason } from "@/lib/justice/server";
 import { payReferralIfDue } from "@/lib/referrals/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { tierAtLeast, VIP_TIERS } from "@/lib/vip/catalog";
@@ -61,6 +62,13 @@ export async function POST(request: Request) {
       { error: `You need to take the ${career.name} job first.`, code: "NOT_EMPLOYED" },
       { status: 403 }
     );
+  }
+
+  // ---- Jail / bench warrant ----
+  const legal = await getLegalStatus(admin, user.id);
+  const blocked = workBlockReason(legal);
+  if (blocked) {
+    return NextResponse.json({ error: blocked, code: "LEGAL_BLOCK" }, { status: 403 });
   }
 
   // ---- VIP careers ----
@@ -173,6 +181,15 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .eq("career_id", career.id);
 
+    // Caught doing something illegal → a court case is opened.
+    const newCases: string[] = [];
+    for (const decision of result.decisions) {
+      if (decision.charge) {
+        const filed = await fileCase(admin, user.id, decision.charge, career.id);
+        if (filed) newCases.push(filed.charge);
+      }
+    }
+
     // Referral reward: the first shift of an invited player pays both.
     const referralBonus = await payReferralIfDue(admin, user.id);
 
@@ -194,6 +211,7 @@ export async function POST(request: Request) {
       success: true,
       weekendPoints,
       referralBonus,
+      newCases,
       result,
       careerXp: careerXp + result.xp,
       rankTitle: career.ranks[result.rankAfter].title,

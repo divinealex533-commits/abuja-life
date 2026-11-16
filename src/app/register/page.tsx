@@ -86,7 +86,7 @@ export default function RegisterPage() {
         throw profileError;
       }
 
-      router.push("/game");
+      router.push("/character?new=1");
       router.refresh();
     } catch (error) {
       console.error("Registration error:", error);

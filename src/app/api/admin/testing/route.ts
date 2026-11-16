@@ -48,6 +48,24 @@ async function runCheck(
   }
 }
 
+const SYSTEM_TABLES: [string, string, string][] = [
+  ["vip_memberships", "VIP memberships", "20261116_vip_careers_weekend.sql"],
+  ["payment_fulfillments", "Purchase delivery", "20261116_vip_careers_weekend.sql"],
+  ["career_progress", "Careers", "20261116_vip_careers_weekend.sql"],
+  ["weekend_scores", "Weekend competition", "20261116_vip_careers_weekend.sql"],
+  ["price_settings", "Admin prices", "20261117_prices_prizes_replies.sql"],
+  ["weekend_winners", "Weekend real-money prizes", "20261117_prices_prizes_replies.sql"],
+  ["announcement_replies", "Announcement replies", "20261117_prices_prizes_replies.sql"],
+  ["business_listings", "Business ads", "20261118_monetization.sql"],
+  ["player_cosmetics", "Style shop", "20261118_monetization.sql"],
+  ["marketplace_fees", "Marketplace commission", "20261118_monetization.sql"],
+  ["referrals", "Referrals", "20261118_monetization.sql"],
+  ["ad_sessions", "Rewarded ads", "20261118_monetization.sql"],
+  ["error_logs", "Error log", "20261119_world_update.sql"],
+  ["court_cases", "Courts & EFCC", "20261119_world_update.sql"],
+  ["state_waitlist", "States waitlist", "20261119_world_update.sql"],
+];
+
 export async function GET() {
   try {
     const admin = await requireAdmin();
@@ -261,6 +279,38 @@ export async function GET() {
         })
       ),
     ]);
+
+    // Every game system's table: a missing table means a SQL file wasn't run.
+    const tableChecks = await Promise.all(
+      SYSTEM_TABLES.map(([table, label, sqlFile]) =>
+        runCheck(`table-${table}`, label, "Game systems", async () => {
+          const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+          if (error) {
+            return {
+              status: "fail" as const,
+              message: /does not exist|schema cache/i.test(error.message)
+                ? `Table "${table}" is missing. Run ${sqlFile} in Supabase.`
+                : error.message,
+            };
+          }
+          return { status: "pass" as const, message: `${count ?? 0} row(s).` };
+        })
+      )
+    );
+    checks.push(...tableChecks);
+
+    checks.push(
+      await runCheck("paystack-public", "Paystack public key", "Payments", async () =>
+        process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+          ? { status: "pass" as const, message: "Public key is set." }
+          : { status: "warn" as const, message: "NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY is missing." }
+      ),
+      await runCheck("admin-ids", "Admin user list", "Security", async () =>
+        process.env.ADMIN_USER_IDS
+          ? { status: "pass" as const, message: "ADMIN_USER_IDS is set." }
+          : { status: "warn" as const, message: "ADMIN_USER_IDS is empty: admin access relies on app_metadata.role." }
+      )
+    );
 
     const pass = checks.filter(
       (item) => item.status === "pass"

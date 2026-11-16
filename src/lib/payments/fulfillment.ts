@@ -12,6 +12,7 @@ import { getCosmetic } from "@/lib/cosmetics/catalog";
 import { getCareer } from "@/lib/game/careers";
 import { getJobById } from "@/lib/game/jobs";
 import { parsePurchaseKind } from "@/lib/payments/purchasables";
+import { logServerError } from "@/lib/system/errors";
 import { getProduct } from "@/lib/vip/catalog";
 import { applyPlayerDelta } from "@/lib/vip/server";
 import { getVenue } from "@/lib/vip/venues";
@@ -133,10 +134,11 @@ export async function fulfillPayment(
   const grantError = await deliver(admin, transaction.user_id, kind, id);
 
   if (grantError) {
-    console.error("Purchase delivery failed:", {
-      reference: transaction.reference,
-      error: grantError,
-    });
+    await logServerError(
+      `payment-delivery ${productId}`,
+      new Error(`${grantError} (ref ${transaction.reference})`),
+      transaction.user_id
+    );
 
     await admin
       .from("payment_fulfillments")
