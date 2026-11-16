@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import JournalistPanel from "@/components/game/JournalistPanel";
-import { getPersistentPlayerState, savePersistentPlayerState } from "@/lib/game/player";
+import { loadPersistentPlayerState, savePersistentPlayerState } from "@/lib/game/player";
 
 export default function JournalistJobPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function JournalistJobPage() {
 
     async function load() {
       try {
-        const state = await getPersistentPlayerState();
+        const state = await loadPersistentPlayerState();
 
         if (!active) return;
 

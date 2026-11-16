@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import PoliceOfficerPanel from "@/components/game/PoliceOfficerPanel";
 import { PlayerGameState } from "@/lib/game/player";
@@ -62,7 +62,10 @@ export default function PoliceOfficerJobPage() {
 
         <PoliceOfficerPanel
           player={player}
-          setPlayer={setPlayer}
+          setPlayer={
+        // The panel is only shown once the player has loaded.
+        setPlayer as Dispatch<SetStateAction<PlayerGameState>>
+      }
         />
       </div>
     </main>

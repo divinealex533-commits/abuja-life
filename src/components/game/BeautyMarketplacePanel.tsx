@@ -10,7 +10,6 @@ import {
   getAllBeautySuppliers,
   getBeautyProductsBySupplier,
   getBeautySupplier,
-  getBeautyInventoryCount,
   getDefaultBeautyBusinessState,
   purchaseBeautyStock,
   completeBeautyCustomerOrder,
@@ -147,20 +146,32 @@ export default function BeautyMarketplacePanel() {
   } | null>(null);
 
   useEffect(() => {
-    const loadedPlayer = loadPersistentPlayerState();
+    let mounted = true;
 
-    setPlayer(loadedPlayer);
+    void loadPersistentPlayerState().then((loadedPlayer) => {
+      if (!mounted) return;
 
-    setBusiness((current) => ({
-      ...current,
-      cash: loadedPlayer.cash,
-    }));
+      setPlayer(loadedPlayer);
+
+      setBusiness((current) => ({
+        ...current,
+        cash: loadedPlayer.cash,
+      }));
+    });
 
     setProgression(loadBeautyBusiness());
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const inventoryCount = useMemo(
-    () => getBeautyInventoryCount(business),
+    () =>
+      Object.values(business.inventory).reduce(
+        (total, count) => total + count,
+        0
+      ),
     [business]
   );
 
@@ -212,7 +223,7 @@ export default function BeautyMarketplacePanel() {
   const openProduct = (product: BeautyProduct) => {
     setSelectedProduct(product);
     setQuantity(1);
-    setSellingPrice(product.recommendedSellingPrice);
+    setSellingPrice(product.recommendedPrice);
     setScreen("product");
   };
 
@@ -369,7 +380,7 @@ export default function BeautyMarketplacePanel() {
 
     const result = completeBeautyCustomerOrder(
       business,
-      order.id
+      order
     );
 
     if (!result.success) {
@@ -381,7 +392,7 @@ export default function BeautyMarketplacePanel() {
     syncPlayerCash(result.state.cash);
 
     const deliveredProfit = result.profit ?? 0;
-    const isVIP = Boolean(order.isVIP);
+    const isVIP = Boolean(order.vip);
     const businessXP = calculateBeautyExperience(
       deliveredProfit,
       100,
@@ -508,8 +519,8 @@ export default function BeautyMarketplacePanel() {
     const premiumProducts = products.filter(
       (product) =>
         product.category === "luxury" ||
-        product.tier === "luxury" ||
-        product.tier === "elite"
+        getBeautySupplier(product.supplierId)?.tier === "luxury" ||
+        getBeautySupplier(product.supplierId)?.tier === "elite"
     );
 
     return (
@@ -574,7 +585,7 @@ export default function BeautyMarketplacePanel() {
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <span className="rounded-full border border-purple-400/20 bg-purple-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-purple-300">
-                    {product.tier}
+                    {getBeautySupplier(product.supplierId)?.tier}
                   </span>
 
                   <span className="text-xl">💎</span>
@@ -585,7 +596,7 @@ export default function BeautyMarketplacePanel() {
                 </h3>
 
                 <p className="mt-1 text-xs text-white/45">
-                  {product.length} • {product.category}
+                  {product.lengthInches}" • {product.category}
                 </p>
 
                 <div className="mt-4 flex items-end justify-between">
@@ -599,7 +610,7 @@ export default function BeautyMarketplacePanel() {
                   </div>
 
                   <span className="text-xs font-bold text-emerald-300">
-                    Up to {formatNGN(product.premiumSellingPrice)}
+                    Up to {formatNGN(product.premiumPrice)}
                   </span>
                 </div>
               </button>
@@ -768,13 +779,12 @@ export default function BeautyMarketplacePanel() {
         {filteredProducts.map((product) => {
           const supplier = getBeautySupplier(product.supplierId);
 
-          const expectedProfit = calculateBeautyProfit({
-            supplierCost: product.supplierPrice,
-            sellingPrice: product.recommendedSellingPrice,
-            deliveryFee: 2500,
-            marketplaceFeePercent:
-              supplier?.marketplaceFeePercent ?? 0,
-          });
+          const expectedProfit = calculateBeautyProfit(
+            product.recommendedPrice,
+            product.supplierPrice,
+            supplier?.marketplaceFeePercent ?? 0,
+            2500
+          );
 
           return (
             <button
@@ -786,10 +796,10 @@ export default function BeautyMarketplacePanel() {
               <div className="mb-5 flex items-start justify-between gap-3">
                 <span
                   className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wider ${getSupplierTierStyle(
-                    product.tier
+                    getBeautySupplier(product.supplierId)?.tier ?? "standard"
                   )}`}
                 >
-                  {product.tier}
+                  {getBeautySupplier(product.supplierId)?.tier}
                 </span>
 
                 <span className="text-2xl">💇🏾‍♀️</span>
@@ -800,7 +810,7 @@ export default function BeautyMarketplacePanel() {
               </h3>
 
               <p className="mt-1 text-xs text-white/45">
-                {product.length} • {product.category}
+                {product.lengthInches}" • {product.category}
               </p>
 
               <p className="mt-3 text-xs text-white/40">
@@ -815,7 +825,7 @@ export default function BeautyMarketplacePanel() {
 
                 <PriceBox
                   label="Sell"
-                  value={formatNGN(product.recommendedSellingPrice)}
+                  value={formatNGN(product.recommendedPrice)}
                 />
               </div>
 
@@ -849,13 +859,12 @@ export default function BeautyMarketplacePanel() {
 
     const totalCost = selectedProduct.supplierPrice * quantity;
 
-    const estimatedProfit = calculateBeautyProfit({
-      supplierCost: selectedProduct.supplierPrice * quantity,
-      sellingPrice: sellingPrice * quantity,
-      deliveryFee: 2500,
-      marketplaceFeePercent:
-        supplier?.marketplaceFeePercent ?? 0,
-    });
+    const estimatedProfit = calculateBeautyProfit(
+      sellingPrice * quantity,
+      selectedProduct.supplierPrice * quantity,
+      supplier?.marketplaceFeePercent ?? 0,
+      2500
+    );
 
     return (
       <div>
@@ -873,10 +882,10 @@ export default function BeautyMarketplacePanel() {
               <div>
                 <span
                   className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wider ${getSupplierTierStyle(
-                    selectedProduct.tier
+                    getBeautySupplier(selectedProduct.supplierId)?.tier ?? "standard"
                   )}`}
                 >
-                  {selectedProduct.tier}
+                  {getBeautySupplier(selectedProduct.supplierId)?.tier ?? "standard"}
                 </span>
 
                 <h2 className="mt-4 text-3xl font-black text-white">
@@ -884,7 +893,7 @@ export default function BeautyMarketplacePanel() {
                 </h2>
 
                 <p className="mt-2 text-sm text-white/50">
-                  {selectedProduct.length} •{" "}
+                  {selectedProduct.lengthInches}" •{" "}
                   {selectedProduct.category}
                 </p>
               </div>
@@ -908,13 +917,13 @@ export default function BeautyMarketplacePanel() {
               <InfoBox
                 label="Recommended Price"
                 value={formatNGN(
-                  selectedProduct.recommendedSellingPrice
+                  selectedProduct.recommendedPrice
                 )}
               />
               <InfoBox
                 label="Premium Price"
                 value={formatNGN(
-                  selectedProduct.premiumSellingPrice
+                  selectedProduct.premiumPrice
                 )}
               />
               <InfoBox
@@ -972,12 +981,12 @@ export default function BeautyMarketplacePanel() {
 
               <input
                 type="number"
-                min={selectedProduct.recommendedSellingPrice}
+                min={selectedProduct.recommendedPrice}
                 value={sellingPrice}
                 onChange={(event) =>
                   setSellingPrice(
                     Math.max(
-                      selectedProduct.recommendedSellingPrice,
+                      selectedProduct.recommendedPrice,
                       Number(event.target.value) || 0
                     )
                   )
@@ -1061,7 +1070,7 @@ export default function BeautyMarketplacePanel() {
                   </p>
                 </div>
 
-                {order.isVIP && (
+                {order.vip && (
                   <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase text-yellow-300">
                     VIP
                   </span>
@@ -1197,7 +1206,7 @@ export default function BeautyMarketplacePanel() {
                 </p>
               </div>
 
-              {selectedOrder.isVIP && (
+              {selectedOrder.vip && (
                 <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs font-black text-yellow-300">
                   👑 VIP CUSTOMER
                 </div>
@@ -1210,7 +1219,9 @@ export default function BeautyMarketplacePanel() {
               </p>
 
               <p className="mt-2 text-sm leading-7 text-white/70">
-                {selectedOrder.description}
+                {selectedOrder.customerName} wants {selectedOrder.quantity}×{" "}
+                {selectedOrder.productName} ({selectedOrder.requestedLength}&quot;)
+                delivered to {selectedOrder.location}.
               </p>
             </div>
 
