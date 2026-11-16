@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import EventPlannerPanel from "@/components/game/EventPlannerPanel";
 import {
-  getPersistentPlayerState,
+  loadPersistentPlayerState,
   savePersistentPlayerState,
 } from "@/lib/game/player";
 
@@ -20,7 +20,7 @@ export default function EventPlannerJobPage() {
 
     async function load() {
       try {
-        const state = await getPersistentPlayerState();
+        const state = await loadPersistentPlayerState();
 
         if (!active) return;
 

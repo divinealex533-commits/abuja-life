@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import LawyerPanel from "@/components/game/LawyerPanel";
 import {
   DEFAULT_PLAYER_STATE,
@@ -54,7 +54,10 @@ export default function LawyerPage() {
   return (
     <LawyerPanel
       player={player}
-      setPlayer={setPlayer}
+      setPlayer={
+        // The panel is only shown once the player has loaded.
+        setPlayer as Dispatch<SetStateAction<PlayerGameState>>
+      }
     />
   );
 }

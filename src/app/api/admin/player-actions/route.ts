@@ -163,7 +163,7 @@ export async function GET(request: Request) {
           .map((item) => item.admin_id)
           .filter(Boolean)
       )
-    );
+    ) as string[];
 
     /*
      * Resolve player profiles.

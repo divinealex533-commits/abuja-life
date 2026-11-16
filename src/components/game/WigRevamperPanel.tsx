@@ -16,7 +16,7 @@ import {
   type PlayerGameState,
 } from "@/lib/game/player";
 
-import { recordBeautyJob } from "@/lib/game/beautyBusiness";
+import { loadBeautyBusiness, recordBeautyJob } from "@/lib/game/beautyBusiness";
 
 const ENERGY_COST = 22;
 
@@ -90,7 +90,13 @@ export default function WigRevamperPanel() {
   const finishedRef = useRef(false);
 
   useEffect(() => {
-    setPlayer(loadPersistentPlayerState());
+    let mounted = true;
+    void loadPersistentPlayerState().then((state) => {
+      if (mounted) setPlayer(state);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const currentRequiredAction =
@@ -251,7 +257,8 @@ function finishOrder() {
     score,
     correctActions,
     mistakes,
-    ordersCompleted: 1,
+    completed: currentStep >= selectedOrder.requiredSteps.length,
+    timeRemaining: timeLeft,
   });
 
   setResult(finalResult);
@@ -273,7 +280,7 @@ function finishOrder() {
     savePlayerState(updatedPlayer);
 
     // Connect completed wig orders to the Beauty Business.
-    recordBeautyJob({
+    recordBeautyJob(loadBeautyBusiness(), {
       type: "wig-revamp",
       title: selectedOrder.title,
       cashEarned: finalResult.cash,

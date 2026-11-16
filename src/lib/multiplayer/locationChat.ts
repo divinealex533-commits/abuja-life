@@ -11,6 +11,7 @@ export interface LocationChatMessage {
   username: string;
   displayName: string;
   avatar: string;
+  vipTier: "silver" | "gold" | "diamond" | null;
 }
 
 const supabase = createClient();
@@ -58,6 +59,16 @@ export async function getLocationChatMessages(
     throw profileError;
   }
 
+  // Active VIP badges (optional — chat still works if the view is missing).
+  const { data: badges } = await supabase
+    .from("vip_public_badges")
+    .select("user_id, tier")
+    .in("user_id", playerIds);
+
+  const badgeMap = new Map(
+    (badges ?? []).map((badge) => [badge.user_id, badge.tier])
+  );
+
   const profileMap = new Map(
     (profiles ?? []).map((profile) => [
       profile.id,
@@ -81,6 +92,7 @@ export async function getLocationChatMessages(
       username: profile?.username ?? "unknown",
       displayName: profile?.displayName ?? "Unknown Player",
       avatar: profile?.avatar ?? "🧑🏽",
+      vipTier: badgeMap.get(item.player_id) ?? null,
     };
   });
 }

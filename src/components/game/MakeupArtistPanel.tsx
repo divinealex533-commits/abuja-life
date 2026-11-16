@@ -16,7 +16,7 @@ import {
   savePlayerState,
   type PlayerGameState,
 } from "@/lib/game/player";
-import { recordBeautyJob } from "@/lib/game/beautyBusiness";
+import { loadBeautyBusiness, recordBeautyJob } from "@/lib/game/beautyBusiness";
 
 const ENERGY_COST = 20;
 
@@ -81,7 +81,13 @@ export default function MakeupArtistPanel() {
   const [activityLog, setActivityLog] = useState<string[]>([]);
 
   useEffect(() => {
-    setPlayer(loadPersistentPlayerState());
+    let mounted = true;
+    void loadPersistentPlayerState().then((state) => {
+      if (mounted) setPlayer(state);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const client = selectedSession?.clients[0] ?? null;
@@ -165,7 +171,7 @@ export default function MakeupArtistPanel() {
     savePlayerState(updatedPlayer);
 
     // Record the completed appointment in the Beauty Business progression.
-    recordBeautyJob({
+    recordBeautyJob(loadBeautyBusiness(), {
       type: "makeup",
       title: `${client.name}'s ${selectedSession.title}`,
       cashEarned: finalResult.cash,

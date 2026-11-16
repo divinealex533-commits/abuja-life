@@ -12,6 +12,7 @@ import {
   purchaseHouse,
 } from '@/lib/game/property';
 
+import VipSection from "@/components/vip/VipSection";
 const formatNaira = (amount: number) =>
   `₦${amount.toLocaleString('en-NG')}`;
 
@@ -183,6 +184,9 @@ export default function HousesPage() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        {/* VIP Estates */}
+        <VipSection area="houses" className="mb-8" />
+
         {/* Message */}
         {message && (
           <div

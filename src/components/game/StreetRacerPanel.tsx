@@ -10,8 +10,10 @@ import {
   type RaceAction,
   type StreetRace,
 } from "@/lib/game/streetRacer";
-import type { PlayerGameState } from "@/lib/game/player";
-import { savePersistentPlayerState } from "@/lib/game/playerStorage";
+import {
+  savePersistentPlayerState,
+  type PlayerGameState,
+} from "@/lib/game/player";
 
 interface StreetRacerPanelProps {
   player: PlayerGameState;
@@ -228,16 +230,12 @@ export default function StreetRacerPanel({
       energy: Math.max(0, (player.energy ?? 0) - 18),
       cash: (player.cash ?? 0) + finalResult.prize,
       reputation: (player.reputation ?? 0) + finalResult.reputation,
-      jobExperience: {
-        ...(player.jobExperience ?? {}),
-        "street-racer":
-          ((player.jobExperience ?? {})["street-racer"] ?? 0) +
-          finalResult.score,
-      },
+      // jobExperience is a single number in the player state.
+      jobExperience: (player.jobExperience ?? 0) + finalResult.score,
     };
 
     setPlayer(updatedPlayer);
-    savePersistentPlayerState(updatedPlayer);
+    void savePersistentPlayerState(updatedPlayer);
 
     setScreen("result");
   }

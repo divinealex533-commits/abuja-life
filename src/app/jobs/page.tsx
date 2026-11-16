@@ -13,7 +13,6 @@ import {
 import {
   PlayerGameState,
   applyJob,
-  savePersistentPlayerState,
 } from "@/lib/game/player";
 
 import {
@@ -40,6 +39,10 @@ import {
   TaxiMission,
 } from "@/lib/game/taxi";
 
+import VipSection from "@/components/vip/VipSection";
+import { usePrices } from "@/lib/pricing/client";
+import { formatPrice } from "@/lib/pricing/items";
+import { startCheckout } from "@/lib/vip/client";
 const categories: Array<"all" | JobCategory> = [
   "all",
   "transport",
@@ -135,6 +138,10 @@ const [selectedTaxiMissionId, setSelectedTaxiMissionId] =
 
   const [activeMission, setActiveMission] =
     useState<ActiveMission | null>(null);
+
+  const [applyError, setApplyError] = useState("");
+  const [applying, setApplying] = useState(false);
+  const { prices } = usePrices();
 
   const [missionMessage, setMissionMessage] =
     useState<string | null>(null);
@@ -842,6 +849,32 @@ function handleTaxiComplete(result: {
         </section>
       )}
 
+      {/* ADVANCED + VIP CAREERS */}
+      <section className="mx-auto max-w-7xl px-4 pt-8">
+        <Link
+          href="/careers"
+          className="group flex flex-col gap-4 overflow-hidden rounded-[2rem] border border-emerald-400/25 bg-gradient-to-r from-emerald-500/15 via-[#0a1612] to-amber-500/15 p-6 transition hover:border-emerald-400/50 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+        >
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300">
+              New · Advanced careers
+            </div>
+            <h2 className="mt-2 text-2xl font-black sm:text-3xl">
+              POS Agent, Mechanic, Nurse, Surgeon, Diplomat & more
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-white/50">
+              Real decisions every shift, promotions through 5 ranks, and
+              👑 VIP careers paying over ₦100,000 a shift at top rank.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-2xl bg-emerald-400 px-6 py-4 text-sm font-black text-black transition group-hover:bg-emerald-300">
+            EXPLORE CAREERS →
+          </span>
+        </Link>
+
+        <VipSection area="jobs" className="mt-6" />
+      </section>
+
       {/* SEARCH + FILTERS */}
       <section className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-5">
@@ -1092,27 +1125,80 @@ function handleTaxiComplete(result: {
               </div>
             </div>
 
+            {prices[`job:${selectedJob.id}`] && player.currentJobId !== selectedJob.id && (
+              <div className="mt-5 flex items-center justify-between rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
+                <div className="text-xs font-black uppercase tracking-wider text-amber-200/70">
+                  Application fee
+                </div>
+                <div className="font-black text-amber-300">
+                  {formatPrice(prices[`job:${selectedJob.id}`])}
+                </div>
+              </div>
+            )}
+
+            {applyError && (
+              <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-sm font-bold text-red-200">
+                {applyError}
+              </div>
+            )}
+
             <button
-              className="mt-6 w-full rounded-2xl bg-emerald-400 py-4 font-black text-black transition hover:bg-emerald-300"
+              className="mt-6 w-full rounded-2xl bg-emerald-400 py-4 font-black text-black transition hover:bg-emerald-300 disabled:opacity-50"
+              disabled={applying}
               onClick={async () => {
-  const updatedPlayer = applyJob(
-    player,
-    selectedJob.id
-  );
+  setApplyError("");
+  setApplying(true);
+
+  /*
+   * The server charges the application fee (Admin → Prices)
+   * and saves the new job.
+   */
+  let applyData: {
+    error?: string;
+    checkout?: boolean;
+    productId?: string;
+    player?: Partial<PlayerGameState> | null;
+  } | null = null;
+
+  try {
+    const applyResponse = await fetch("/api/jobs/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId: selectedJob.id }),
+    });
+
+    applyData = await applyResponse.json().catch(() => null);
+
+    if (applyResponse.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+
+    if (applyResponse.ok && applyData?.checkout && applyData.productId) {
+      const problem = await startCheckout(applyData.productId);
+      if (problem) setApplyError(problem);
+      return;
+    }
+
+    if (!applyResponse.ok) {
+      setApplyError(applyData?.error || "Could not apply for this job.");
+      return;
+    }
+  } catch {
+    setApplyError("Network error. Please try again.");
+    return;
+  } finally {
+    setApplying(false);
+  }
+
+  const updatedPlayer: PlayerGameState = {
+    ...applyJob(player, selectedJob.id),
+    ...(applyData?.player ?? {}),
+  };
 
   setPlayer(updatedPlayer);
   savePlayerState(updatedPlayer);
-
-  const saved = await savePersistentPlayerState(
-    updatedPlayer
-  );
-
-  if (!saved) {
-    setMissionMessage(
-      "Your job could not be saved. Please try again."
-    );
-    return;
-  }
+  window.dispatchEvent(new Event("abujaLifePlayerUpdated"));
 
   setShiftActive(false);
   setActiveMission(null);
@@ -1124,7 +1210,7 @@ function handleTaxiComplete(result: {
 }
 
 if (selectedJob.id === "shopkeeper") {
-  window.location.href = "/jobs/shopkeeper";
+  window.location.href = "/jobs/Shopkeeper";
   return;
 }
 
@@ -1250,7 +1336,7 @@ if (selectedJob.id === "wig-revamper") {
                 
 }}
             >
-              APPLY FOR THIS JOB →
+              {applying ? "APPLYING..." : "APPLY FOR THIS JOB →"}
             </button>
           </div>
         </div>

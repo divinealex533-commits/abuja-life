@@ -559,6 +559,84 @@ export default function AdminPage() {
             </div>
           </Link>
 
+          {/* VIP & STORE */}
+          <Link
+            href="/admin/vip"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-amber-500/30 hover:bg-amber-500/[0.05]"
+          >
+            <div className="text-2xl">👑</div>
+
+            <h3 className="mt-4 font-black">
+              VIP, Store & Weekend Rewards
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Sales by product, active VIP members, gift VIP
+              and set weekend reward amounts.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-amber-400">
+              Open VIP Center →
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/prices"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-sky-500/30 hover:bg-sky-500/[0.05]"
+          >
+            <div className="text-2xl">🏷️</div>
+
+            <h3 className="mt-4 font-black">
+              Prices
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Set the price of every VIP item, VIP place and job — game cash or real Naira.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-sky-400">
+              Open Prices →
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/weekend-prizes"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-yellow-500/30 hover:bg-yellow-500/[0.05]"
+          >
+            <div className="text-2xl">🏆</div>
+
+            <h3 className="mt-4 font-black">
+              Weekend Prizes
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Pick weekend winners, see bank details and mark real-money prizes paid.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-yellow-400">
+              Open Prizes →
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/announcements/replies"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-500/30 hover:bg-pink-500/[0.05]"
+          >
+            <div className="text-2xl">💬</div>
+
+            <h3 className="mt-4 font-black">
+              Player Replies
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Read and answer players' private replies to your announcements.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-pink-400">
+              Open Inbox →
+            </div>
+          </Link>
+
           {/* SETTINGS */}
           <Link
             href="/admin/settings"

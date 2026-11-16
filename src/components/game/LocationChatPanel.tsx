@@ -14,6 +14,7 @@ import {
   type LocationChatMessage,
 } from "@/lib/multiplayer/locationChat";
 
+import VipBadge from "@/components/vip/VipBadge";
 interface LocationChatPanelProps {
   locationId: string;
 }
@@ -215,6 +216,8 @@ export default function LocationChatPanel({
                       <span className="truncate text-sm font-black text-white">
                         {item.displayName}
                       </span>
+
+                      <VipBadge tier={item.vipTier} size="xs" />
 
                       <span className="truncate text-xs text-white/30">
                         @{item.username}

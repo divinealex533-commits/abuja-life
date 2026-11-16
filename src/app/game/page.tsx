@@ -15,6 +15,8 @@ import NearbyPlayersPanel from "@/components/game/NearbyPlayersPanel";
 import LocationChatPanel from "@/components/game/LocationChatPanel";
 
 import DailyRewardPanel from "@/components/game/DailyRewardPanel";
+import VipSection from "@/components/vip/VipSection";
+import WeekendRewardPanel from "@/components/vip/WeekendRewardPanel";
 
 import NPCInteractionPanel from "@/components/game/NPCInteractionPanel";
 
@@ -490,6 +492,20 @@ const cityActivities = [
           </button>
 
           <div className="hidden items-center gap-3 md:flex">
+  <Link
+    href="/careers"
+    className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-300 transition hover:bg-emerald-400/20"
+  >
+    💼 Careers
+  </Link>
+
+  <Link
+    href="/vip"
+    className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-black text-amber-300 transition hover:bg-amber-400/20"
+  >
+    👑 VIP
+  </Link>
+
   <NotificationBell />
 
   <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2">
@@ -514,6 +530,18 @@ const cityActivities = [
               <div className="mb-2 flex justify-end">
   <NotificationBell />
 </div>
+              <Link
+                href="/vip"
+                className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-left font-black text-amber-300"
+              >
+                👑 VIP Store
+              </Link>
+              <Link
+                href="/careers"
+                className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3 text-left font-black text-emerald-300"
+              >
+                💼 Careers
+              </Link>
               <button className="rounded-lg bg-white/5 p-3 text-left">
                 🌍 World
               </button>
@@ -1373,6 +1401,14 @@ const cityActivities = [
   <div className="mt-6">
   <DailyRewardPanel />
 </div>
+
+  <div className="mt-6">
+    <WeekendRewardPanel />
+  </div>
+
+  <div className="mt-6">
+    <VipSection area="hub" />
+  </div>
 
   <div
     id="travel-panel"
