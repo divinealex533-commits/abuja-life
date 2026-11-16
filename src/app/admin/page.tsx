@@ -559,6 +559,44 @@ export default function AdminPage() {
             </div>
           </Link>
 
+          <Link
+            href="/admin/earnings"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-green-500/30 hover:bg-green-500/[0.05]"
+          >
+            <div className="text-2xl">💰</div>
+
+            <h3 className="mt-4 font-black">
+              Earnings
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Revenue by type, marketplace fee, rewarded ads and referral settings.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-green-400">
+              Open Earnings →
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/businesses"
+            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-emerald-500/30 hover:bg-emerald-500/[0.05]"
+          >
+            <div className="text-2xl">📣</div>
+
+            <h3 className="mt-4 font-black">
+              Business Adverts
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Approve real businesses that pay to appear in the game. Send them to /advertise.
+            </p>
+
+            <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+              Review Adverts →
+            </div>
+          </Link>
+
           {/* VIP & STORE */}
           <Link
             href="/admin/vip"

@@ -21,7 +21,7 @@ const METHOD_LABEL: Record<PriceMethod, string> = {
   free: "Free",
 };
 
-const GROUP_ORDER: PriceGroup[] = ["store", "venue", "career", "job"];
+const GROUP_ORDER: PriceGroup[] = ["store", "ad", "cosmetic", "venue", "career", "job"];
 
 export default function AdminPricesPage() {
   const [rows, setRows] = useState<Row[]>([]);

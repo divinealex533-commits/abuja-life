@@ -8,6 +8,7 @@ import {
   rankIndexForXp,
 } from "@/lib/game/careers/engine";
 import type { ShiftDecision } from "@/lib/game/careers/types";
+import { payReferralIfDue } from "@/lib/referrals/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { tierAtLeast, VIP_TIERS } from "@/lib/vip/catalog";
 import {
@@ -172,6 +173,9 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .eq("career_id", career.id);
 
+    // Referral reward: the first shift of an invited player pays both.
+    const referralBonus = await payReferralIfDue(admin, user.id);
+
     // Weekend competition: XP earned on Sat/Sun counts as points.
     // (VIP pay bonus does not change XP, so prizes stay fair.)
     const weekendKey = weekendKeyFor();
@@ -189,10 +193,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       weekendPoints,
+      referralBonus,
       result,
       careerXp: careerXp + result.xp,
       rankTitle: career.ranks[result.rankAfter].title,
-      player: snapshot,
+      player: referralBonus
+        ? { ...snapshot, cash: snapshot.cash + referralBonus }
+        : snapshot,
     });
   } catch (error) {
     // Shift didn't happen (e.g. not enough energy): release the slot.

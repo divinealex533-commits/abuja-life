@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import VipBadge from "@/components/vip/VipBadge";
 import VipSection from "@/components/vip/VipSection";
+import RewardedAdPanel from "@/components/ads/RewardedAdPanel";
 import { ACCENT_CLASSES, CAREERS } from "@/lib/game/careers";
 import { rankIndexForXp, shiftPayAtRank } from "@/lib/game/careers/engine";
 import type { Career } from "@/lib/game/careers/types";
@@ -180,6 +181,10 @@ export default function CareersPage() {
             ))}
           </div>
         </section>
+
+        <div className="mt-12">
+          <RewardedAdPanel />
+        </div>
 
         <div className="mt-12">
           <VipSection area="jobs" />

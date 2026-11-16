@@ -7,6 +7,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { AD_PLANS, isAdPlan } from "@/lib/business/catalog";
+import { getCosmetic } from "@/lib/cosmetics/catalog";
 import { getCareer } from "@/lib/game/careers";
 import { getJobById } from "@/lib/game/jobs";
 import { parsePurchaseKind } from "@/lib/payments/purchasables";
@@ -106,7 +108,11 @@ export async function fulfillPayment(
         ? Boolean(getVenue(id))
         : kind === "career"
           ? Boolean(getCareer(id))
-          : Boolean(getJobById(id));
+          : kind === "ad"
+            ? isAdPlan(id.split(":")[0] ?? "") && Boolean(id.split(":")[1])
+            : kind === "cosmetic"
+              ? Boolean(getCosmetic(id))
+              : Boolean(getJobById(id));
 
   if (!known) {
     return { status: "failed", reason: "UNKNOWN_PRODUCT" };
@@ -176,6 +182,28 @@ async function deliver(
       const venue = getVenue(id)!;
       await applyPlayerDelta(admin, userId, venue.reward);
       return null;
+    }
+
+    if (kind === "ad") {
+      const [planId, listingId] = id.split(":");
+      if (!isAdPlan(planId)) return "UNKNOWN_PLAN";
+      const { error } = await admin.rpc("abuja_extend_listing", {
+        p_listing_id: listingId,
+        p_owner: userId,
+        p_plan: planId,
+        p_days: AD_PLANS[planId].days,
+      });
+      return error ? error.message : null;
+    }
+
+    if (kind === "cosmetic") {
+      const { error } = await admin
+        .from("player_cosmetics")
+        .upsert(
+          { user_id: userId, cosmetic_id: id },
+          { onConflict: "user_id,cosmetic_id", ignoreDuplicates: true }
+        );
+      return error ? error.message : null;
     }
 
     if (kind === "career") {

@@ -15,6 +15,7 @@ import {
 } from "@/lib/multiplayer/locationChat";
 
 import VipBadge from "@/components/vip/VipBadge";
+import { FramedAvatar, StyledName } from "@/components/cosmetics/StyledName";
 interface LocationChatPanelProps {
   locationId: string;
 }
@@ -205,17 +206,20 @@ export default function LocationChatPanel({
                   }}
                 >
                   {/* Avatar */}
-                  <div className="chat-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl">
-                    {item.avatar}
+                  <div className="chat-avatar shrink-0">
+                    <FramedAvatar avatar={item.avatar} frame={item.avatarFrame} />
                   </div>
 
                   <div className="min-w-0 flex-1">
 
                     {/* Player name */}
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-black text-white">
-                        {item.displayName}
-                      </span>
+                      <StyledName
+                        name={item.displayName}
+                        nameStyle={item.nameStyle}
+                        title={item.title}
+                        className="truncate text-sm font-black text-white"
+                      />
 
                       <VipBadge tier={item.vipTier} size="xs" />
 
