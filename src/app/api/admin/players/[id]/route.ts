@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin/access";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export async function GET(
   _request: Request,
@@ -21,8 +21,9 @@ export async function GET(
       );
     }
 
-    const supabase =
-      await createServerSupabaseClient();
+    // Admin-only route (checked above): read every player with the
+    // service key, since player rows are private to each player.
+    const supabase = createAdminSupabaseClient();
 
     const { data: profile, error: profileError } =
       await supabase

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin/access";
 
 function safeNumber(
@@ -30,8 +30,9 @@ export async function GET(request: Request) {
   try {
     await requireAdmin();
 
-    const supabase =
-      await createServerSupabaseClient();
+    // Admin-only route (checked above): read every player with the
+    // service key, since player rows are private to each player.
+    const supabase = createAdminSupabaseClient();
 
     const { searchParams } =
       new URL(request.url);
