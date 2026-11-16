@@ -21,6 +21,7 @@ import {
   savePlayerState,
 } from "@/lib/game/player";
 
+import VipSection from "@/components/vip/VipSection";
 type FilterClass =
   | "all"
   | "economy"
@@ -247,6 +248,9 @@ export default function DealershipPage() {
             </div>
           </div>
         </section>
+
+        {/* VIP AREA */}
+        <VipSection area="dealership" className="mb-8" />
 
         {/* DEALERSHIPS */}
         <section className="mb-8">

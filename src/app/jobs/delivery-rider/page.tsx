@@ -88,7 +88,14 @@ export default function DeliveryRiderPage() {
       const saved =
         await savePersistentPlayerState(updatedPlayer);
 
-      setPlayer(saved);
+      if (!saved) {
+        setMessage(
+          "The work was completed, but your earnings could not be saved. Please try again."
+        );
+        return;
+      }
+
+      setPlayer(updatedPlayer);
 
       setMessage(
         `${result.message} You earned ₦${earnings.toLocaleString()}.`

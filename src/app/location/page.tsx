@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import VipSection from "@/components/vip/VipSection";
 type Activity = {
   title: string;
   icon: string;
@@ -512,6 +513,11 @@ export default function LocationPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* VIP LOUNGES */}
+      <section className="mx-auto max-w-7xl px-5 pt-8">
+        <VipSection area="location" />
       </section>
 
       {/* ACTIVITY SECTION */}

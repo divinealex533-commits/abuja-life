@@ -22,6 +22,7 @@ import {
   savePlayerState,
 } from "@/lib/game/player";
 
+import VipSection from "@/components/vip/VipSection";
 export default function BusinessesPage() {
   const [playerCash, setPlayerCash] = useState(0);
   const [playerReputation, setPlayerReputation] = useState(0);
@@ -255,6 +256,9 @@ export default function BusinessesPage() {
             </div>
           </div>
         </section>
+
+        {/* VIP AREA */}
+        <VipSection area="businesses" className="mb-8" />
 
         {/* MESSAGE */}
         {message && (

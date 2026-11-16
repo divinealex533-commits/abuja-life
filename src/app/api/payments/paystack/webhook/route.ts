@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { fulfillPayment } from "@/lib/payments/fulfillment";
 
 const PAYSTACK_SECRET_ENV =
   "PAYSTACK_SECRET_KEY";
@@ -424,9 +425,30 @@ export async function POST(
       );
     }
 
+    /*
+     * Give the player what they paid for (VIP time, cash).
+     * Safe if Paystack sends the same webhook more than once.
+     */
+    const fulfillment = await fulfillPayment(
+      adminSupabase,
+      transaction
+    );
+
+    if (fulfillment.status === "failed") {
+      // Non-2xx makes Paystack retry the webhook later.
+      return NextResponse.json(
+        {
+          error: "Payment recorded but delivery failed.",
+          reason: fulfillment.reason,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       received: true,
       processed: true,
+      fulfillment: fulfillment.status,
       paymentVerified: true,
       revenueRecorded: true,
       reference,

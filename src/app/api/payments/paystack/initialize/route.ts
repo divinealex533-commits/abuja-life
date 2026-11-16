@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { resolvePurchase } from "@/lib/payments/purchasables";
 
 const PAYSTACK_URL =
   "https://api.paystack.co/transaction/initialize";
@@ -128,40 +129,40 @@ export async function POST(request: Request) {
       .json()
       .catch(() => null);
 
-    const amountNaira = Number(body?.amount);
-
-    const purpose =
-      typeof body?.purpose === "string"
-        ? body.purpose.trim()
-        : "other";
-
-    const description =
-      typeof body?.description === "string"
-        ? body.description.trim().slice(0, 500)
+    /*
+     * The browser only sends a product ID.
+     * Price, purpose and description come from the server-side
+     * catalog, so a player can never choose how much to pay.
+     */
+    const productId =
+      typeof body?.productId === "string"
+        ? body.productId.trim()
         : "";
 
-    if (
-      !Number.isFinite(amountNaira) ||
-      amountNaira <= 0
-    ) {
+    const resolved = await resolvePurchase(
+      adminSupabase,
+      user.id,
+      productId
+    );
+
+    if (!resolved.ok) {
       return NextResponse.json(
         {
-          error:
-            "Payment amount must be greater than zero.",
+          error: resolved.error,
         },
-        { status: 400 }
+        { status: resolved.status }
       );
     }
 
-    if (amountNaira > 10_000_000) {
-      return NextResponse.json(
-        {
-          error:
-            "Payment amount exceeds the allowed limit.",
-        },
-        { status: 400 }
-      );
-    }
+    const product = {
+      id: resolved.purchase.productId,
+      oncePerAccount: resolved.purchase.oncePerAccount,
+    };
+
+    const amountNaira = resolved.purchase.priceNaira;
+    const purpose = resolved.purchase.purpose;
+    const description =
+      `${resolved.purchase.name} — ${resolved.purchase.description}`.slice(0, 500);
 
     if (!ALLOWED_PURPOSES.has(purpose)) {
       return NextResponse.json(
@@ -170,6 +171,25 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       );
+    }
+
+    if (product.oncePerAccount) {
+      const { data: previous } = await adminSupabase
+        .from("payment_fulfillments")
+        .select("reference")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .eq("status", "completed")
+        .limit(1);
+
+      if (previous && previous.length > 0) {
+        return NextResponse.json(
+          {
+            error: "You have already bought this one-time item.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
     const email =
@@ -220,6 +240,7 @@ export async function POST(request: Request) {
           metadata: {
             description,
             source: "abuja_life",
+            product_id: product.id,
           },
         });
 
@@ -272,6 +293,7 @@ export async function POST(request: Request) {
 
             internal_reference:
               reference,
+            product_id: product.id,
 
             source:
               "abuja_life",
@@ -304,6 +326,7 @@ export async function POST(request: Request) {
 
             source:
               "abuja_life",
+            product_id: product.id,
 
             paystack_error:
               paystackData?.message ||
@@ -355,6 +378,7 @@ export async function POST(request: Request) {
 
           source:
             "abuja_life",
+          product_id: product.id,
 
           paystack_reference:
             paystackReference ||

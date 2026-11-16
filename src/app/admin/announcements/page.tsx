@@ -568,6 +568,13 @@ export default function AdminAnnouncementsPage() {
         </Link>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/announcements/replies"
+            className="rounded-xl bg-pink-500/15 px-4 py-2 text-xs font-black text-pink-300 transition hover:bg-pink-500/25"
+          >
+            💬 Player Replies
+          </Link>
+
           {refreshing && (
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
               Updating...

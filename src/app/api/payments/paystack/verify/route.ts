@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { fulfillPayment } from "@/lib/payments/fulfillment";
 
 const PAYSTACK_VERIFY_BASE =
   "https://api.paystack.co/transaction/verify";
@@ -147,9 +148,22 @@ export async function POST(request: Request) {
      * result instead of processing revenue again.
      */
     if (transaction.status === "success") {
+      /*
+       * Deliver the purchase if an earlier attempt failed.
+       * fulfillPayment() never delivers the same payment twice.
+       */
+      const fulfillment = await fulfillPayment(
+        adminSupabase,
+        transaction
+      );
+
       return NextResponse.json({
         success: true,
         alreadyProcessed: true,
+        fulfillment: fulfillment.status,
+        productId:
+          (transaction.metadata as Record<string, unknown> | null)
+            ?.product_id ?? null,
         reference,
         amount: Number(transaction.amount),
         currency: transaction.currency,
@@ -401,9 +415,21 @@ export async function POST(request: Request) {
         );
       }
 
+      /*
+       * Give the player what they paid for (VIP time, cash).
+       */
+      const fulfillment = await fulfillPayment(
+        adminSupabase,
+        transaction
+      );
+
       return NextResponse.json({
         success: true,
         alreadyProcessed: false,
+        fulfillment: fulfillment.status,
+        productId:
+          (transaction.metadata as Record<string, unknown> | null)
+            ?.product_id ?? null,
         paymentVerified: true,
         revenueRecorded: true,
         reference,

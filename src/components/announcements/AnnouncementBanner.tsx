@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Priority = "normal" | "important" | "urgent";
@@ -91,6 +92,13 @@ export default function AnnouncementBanner() {
           <p className="mt-1 text-sm leading-6 opacity-80">
             {announcement.message}
           </p>
+
+          <Link
+            href="/announcements"
+            className="mt-2 inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-black transition hover:bg-white/20"
+          >
+            💬 Reply to admin · See all
+          </Link>
         </div>
 
         <button

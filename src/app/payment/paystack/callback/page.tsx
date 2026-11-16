@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+import { describePurchase } from "@/lib/payments/labels";
+
 type VerifyResult = {
   success?: boolean;
   paymentVerified?: boolean;
@@ -16,6 +18,8 @@ type VerifyResult = {
   status?: string;
   message?: string;
   error?: string;
+  fulfillment?: string;
+  productId?: string | null;
 };
 
 export default function PaystackCallbackPage() {
@@ -102,7 +106,7 @@ export default function PaystackCallbackPage() {
               confirms your payment.
             </p>
           </>
-        ) : result?.paymentVerified ? (
+        ) : result?.paymentVerified || result?.success ? (
           <>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-3xl">
               ✓
@@ -113,8 +117,11 @@ export default function PaystackCallbackPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
-              Your payment has been verified
-              and recorded as Abuja Life revenue.
+              {describePurchase(result.productId)
+                ? result.fulfillment === "failed"
+                  ? `Your payment for ${describePurchase(result.productId)?.name} was received. Delivery is being retried — refresh this page in a minute.`
+                  : `${describePurchase(result.productId)?.name} is now active on your account. Enjoy!`
+                : "Your payment has been verified."}
             </p>
 
             {result.amount != null && (
@@ -133,6 +140,15 @@ export default function PaystackCallbackPage() {
                   )}
                 </div>
               </div>
+            )}
+
+            {describePurchase(result.productId) && (
+              <Link
+                href={describePurchase(result.productId)!.href}
+                className="mt-6 mr-3 inline-flex rounded-xl bg-amber-400 px-6 py-3 text-sm font-black text-black transition hover:bg-amber-300"
+              >
+                {describePurchase(result.productId)!.cta} →
+              </Link>
             )}
 
             <Link
