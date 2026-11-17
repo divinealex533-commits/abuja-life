@@ -172,6 +172,17 @@ export async function POST(request: Request) {
   const mood = life.ready ? moodScore(life.needs, life.energy, life.maxEnergy) : null;
   const moodFactor = mood === null ? 1 : moodInfo(mood).payFactor;
   const hustleShare = hustleBonusShare(Number(body?.tasksDone ?? 0));
+  // Admin job pay setting (World Controls → Job pay). Missing table = normal pay.
+  const { data: paySetting } = await admin
+    .from("career_pay_settings")
+    .select("pay_multiplier")
+    .eq("career_id", career.id)
+    .maybeSingle();
+  const adminPay = Number(paySetting?.pay_multiplier ?? 1);
+  if (Number.isFinite(adminPay) && adminPay > 0 && adminPay !== 1) {
+    result.totalPay = Math.round(result.totalPay * adminPay);
+  }
+
   const beforeLife = result.totalPay;
   result.totalPay = Math.round(beforeLife * moodFactor * (1 + hustleShare));
   const lifeBonus = {

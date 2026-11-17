@@ -59,3 +59,13 @@ export function doorOf(spot: CitySpot): { x: number; y: number } {
 }
 
 export const ENTER_DISTANCE = 90;
+
+/** Where rented billboards stand along the main roads (slot 1–6). */
+export const BILLBOARD_SPOTS: { x: number; y: number }[] = [
+  { x: 1820, y: 1600 },
+  { x: 1000, y: 480 },
+  { x: 1800, y: 1300 },
+  { x: 330, y: 1590 },
+  { x: 1300, y: 2080 },
+  { x: 1850, y: 330 },
+];

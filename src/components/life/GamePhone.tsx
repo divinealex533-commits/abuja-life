@@ -27,6 +27,8 @@ const APPS: { label: string; icon: string; href?: string; action?: "shift"; tone
   { label: "Court", icon: "⚖️", href: "/court", tone: "from-stone-300 to-stone-500" },
   { label: "EFCC", icon: "🚔", href: "/efcc", tone: "from-red-400 to-red-700" },
   { label: "News", icon: "📢", href: "/announcements", tone: "from-blue-300 to-indigo-600" },
+  { label: "Vote", icon: "🗳️", href: "/elections", tone: "from-emerald-400 to-green-700" },
+  { label: "Stats", icon: "📊", href: "/stats", tone: "from-cyan-300 to-sky-600" },
   { label: "Tasks", icon: "✅", href: "/tasks", tone: "from-lime-300 to-green-600" },
 ];
 
@@ -114,7 +116,7 @@ function PhoneInner({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-4 gap-x-2 gap-y-3">
+            <div className="mt-4 grid max-h-[46vh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto pb-1">
               {APPS.map((app) => {
                 const icon = (
                   <>

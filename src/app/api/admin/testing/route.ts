@@ -64,6 +64,9 @@ const SYSTEM_TABLES: [string, string, string][] = [
   ["error_logs", "Error log", "20261119_world_update.sql"],
   ["court_cases", "Courts & EFCC", "20261119_world_update.sql"],
   ["state_waitlist", "States waitlist", "20261119_world_update.sql"],
+  ["elections", "Elections", "20261122_control_room.sql"],
+  ["billboards", "Billboards", "20261122_control_room.sql"],
+  ["career_pay_settings", "Job pay controls", "20261122_control_room.sql"],
 ];
 
 export async function GET() {

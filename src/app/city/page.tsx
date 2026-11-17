@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
 import CharacterAvatar from "@/components/character/CharacterAvatar";
+import { BillboardFace, useBillboards } from "@/components/world/Billboard";
 import type { Appearance } from "@/lib/character/appearance";
 import { getLocationById } from "@/lib/game/locations";
 import { loadPersistentPlayerState, loadPlayerState, savePersistentPlayerState } from "@/lib/game/player";
 import { useLife } from "@/lib/life/client";
 import { LIFE_ACTIVITIES, abujaClock, activityBlock, placeStatus } from "@/lib/life/needs";
 import {
+  BILLBOARD_SPOTS,
   CITY_SPOTS,
   ENTER_DISTANCE,
   ROADS,
@@ -64,6 +66,7 @@ const WALKERS = Array.from({ length: 18 }, (_, i) => {
 export default function CityWalkPage() {
   const router = useRouter();
   const life = useLife();
+  const billboards = useBillboards();
   const worldRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
@@ -377,6 +380,21 @@ export default function CityWalkPage() {
         {CITY_SPOTS.map((spot) => (
           <Building key={spot.locationId} spot={spot} night={night} highlight={spot.locationId === nearId} current={spot.locationId === currentId} />
         ))}
+
+        {/* rented billboards */}
+        {billboards.slice(0, BILLBOARD_SPOTS.length).map((board, i) => {
+          const spot = BILLBOARD_SPOTS[(Math.max(1, board.slot) - 1 + i) % BILLBOARD_SPOTS.length];
+          return (
+            <div
+              key={board.id}
+              className="absolute w-56 -translate-x-1/2"
+              style={{ left: spot.x, top: spot.y - 150, zIndex: Math.round(spot.y) }}
+            >
+              <BillboardFace board={board} compact />
+              <div className="mx-auto h-16 w-3 bg-slate-700" />
+            </div>
+          );
+        })}
 
         {/* people */}
         {WALKERS.map((w, i) => (
