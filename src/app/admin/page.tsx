@@ -7,6 +7,13 @@ import CommandCenter from "@/components/admin/CommandCenter";
 
 const adminSections = [
   {
+    icon: "🎛️",
+    title: "World Controls",
+    description:
+      "Give every player money, reset cheated balances, set job pay, run elections and rent billboards.",
+    href: "/admin/control",
+  },
+  {
     icon: "📢",
     title: "Announcements",
     description:
@@ -191,9 +198,9 @@ export default function AdminPage() {
   const visitorsThisMonth = visitors?.visitorsThisMonth ?? 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       {/* HEADER */}
-      <section className="rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 via-slate-900 to-slate-950 p-8 shadow-2xl">
+      <section className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 via-slate-900 to-slate-950 p-8 shadow-2xl">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-bold text-green-400">
@@ -203,8 +210,8 @@ export default function AdminPage() {
 
             <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
               Abuja Life
-              <span className="block text-orange-400">
-                Admin Control Center
+              <span className="block bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">
+                Control Room
               </span>
             </h1>
 

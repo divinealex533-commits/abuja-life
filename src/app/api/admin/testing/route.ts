@@ -64,6 +64,9 @@ const SYSTEM_TABLES: [string, string, string][] = [
   ["error_logs", "Error log", "20261119_world_update.sql"],
   ["court_cases", "Courts & EFCC", "20261119_world_update.sql"],
   ["state_waitlist", "States waitlist", "20261119_world_update.sql"],
+  ["elections", "Elections", "20261122_control_room.sql"],
+  ["billboards", "Billboards", "20261122_control_room.sql"],
+  ["career_pay_settings", "Job pay controls", "20261122_control_room.sql"],
 ];
 
 export async function GET() {
@@ -313,6 +316,20 @@ export async function GET() {
           };
         }
         return { status: "pass" as const, message: "Players can link socials and go live." };
+      }),
+      await runCheck("playable-life", "Needs & live shifts", "Game systems", async () => {
+        const { error } = await supabase
+          .from("player_game_states")
+          .select("needs, needs_updated_at", { head: true, count: "exact" });
+        if (error) {
+          return {
+            status: "fail" as const,
+            message: /does not exist|schema cache/i.test(error.message)
+              ? "Needs columns are missing. Run 20261121_playable_life.sql in Supabase."
+              : error.message,
+          };
+        }
+        return { status: "pass" as const, message: "Hunger, hygiene, fun and social are live." };
       }),
       await runCheck("paystack-public", "Paystack public key", "Payments", async () =>
         process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY

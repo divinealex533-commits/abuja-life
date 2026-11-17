@@ -9,6 +9,8 @@ import {
 } from "@/lib/game/careers/engine";
 import type { ShiftDecision } from "@/lib/game/careers/types";
 import { fileCase, getLegalStatus, workBlockReason } from "@/lib/justice/server";
+import { SHIFT_NEEDS_COST, hustleBonusShare, moodInfo, moodScore } from "@/lib/life/needs";
+import { changeNeeds, loadLife } from "@/lib/life/server";
 import { payReferralIfDue } from "@/lib/referrals/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { tierAtLeast, VIP_TIERS } from "@/lib/vip/catalog";
@@ -163,6 +165,34 @@ export async function POST(request: Request) {
   const vipPayBonus = vip.active && vip.info ? vip.info.jobPayBonus : 0;
   const result = computeShift(career, decisions, careerXp, vipPayBonus);
 
+  // ---- Playable life: mood and hustle tasks change the pay ----
+  // Mood comes from the player's saved needs (server side). Hustle tasks are
+  // the quick taps during a live shift; finishing all of them pays +15%.
+  const life = await loadLife(admin, user.id);
+  const mood = life.ready ? moodScore(life.needs, life.energy, life.maxEnergy) : null;
+  const moodFactor = mood === null ? 1 : moodInfo(mood).payFactor;
+  const hustleShare = hustleBonusShare(Number(body?.tasksDone ?? 0));
+  // Admin job pay setting (World Controls → Job pay). Missing table = normal pay.
+  const { data: paySetting } = await admin
+    .from("career_pay_settings")
+    .select("pay_multiplier")
+    .eq("career_id", career.id)
+    .maybeSingle();
+  const adminPay = Number(paySetting?.pay_multiplier ?? 1);
+  if (Number.isFinite(adminPay) && adminPay > 0 && adminPay !== 1) {
+    result.totalPay = Math.round(result.totalPay * adminPay);
+  }
+
+  const beforeLife = result.totalPay;
+  result.totalPay = Math.round(beforeLife * moodFactor * (1 + hustleShare));
+  const lifeBonus = {
+    mood,
+    moodLabel: mood === null ? null : moodInfo(mood).label,
+    moodAdjustment: Math.round(beforeLife * moodFactor) - beforeLife,
+    hustleBonus: result.totalPay - Math.round(beforeLife * moodFactor),
+    tasksDone: Math.max(0, Math.min(4, Math.floor(Number(body?.tasksDone ?? 0)))),
+  };
+
   try {
     const snapshot = await applyPlayerDelta(admin, user.id, {
       cash: result.totalPay,
@@ -190,6 +220,9 @@ export async function POST(request: Request) {
       }
     }
 
+    // Working makes you hungry, sweaty and a bit tired of life.
+    if (life.ready) await changeNeeds(admin, user.id, SHIFT_NEEDS_COST);
+
     // Referral reward: the first shift of an invited player pays both.
     const referralBonus = await payReferralIfDue(admin, user.id);
 
@@ -213,6 +246,7 @@ export async function POST(request: Request) {
       referralBonus,
       newCases,
       result,
+      lifeBonus,
       careerXp: careerXp + result.xp,
       rankTitle: career.ranks[result.rankAfter].title,
       player: referralBonus

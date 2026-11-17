@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { placeStatus } from "@/lib/life/needs";
 import {
   ABUJA_LOCATIONS,
   LOCATION_CONNECTIONS,
@@ -200,6 +201,20 @@ export default function TravelPanel() {
                       <div className="text-xs text-white/50">
                         {location.neighborhood}
                       </div>
+
+                      {(() => {
+                        const status = placeStatus(location.id);
+                        return (
+                          <div
+                            className={`mt-0.5 text-[11px] font-bold ${
+                              status.open ? "text-emerald-300/80" : "text-red-300/80"
+                            }`}
+                          >
+                            {status.open ? "● " : "○ "}
+                            {status.text}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </button>
