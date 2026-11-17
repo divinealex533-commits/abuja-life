@@ -177,6 +177,15 @@ export default function LifePanel() {
                 <div className="text-[11px] font-bold opacity-70">Earn money now</div>
               </button>
 
+              <a
+                href="/city"
+                className="col-span-2 rounded-2xl border-b-4 border-sky-800 bg-gradient-to-b from-sky-400 to-blue-600 p-3 text-left text-white shadow-lg transition active:translate-y-0.5 active:border-b-2 sm:col-span-1"
+              >
+                <div className="text-2xl">🚶🏾</div>
+                <div className="mt-1 text-sm font-black uppercase">Walk the city</div>
+                <div className="text-[11px] font-bold opacity-80">Explore Abuja on foot</div>
+              </a>
+
               {available.map(({ activity, block }) => (
                 <button
                   key={activity.id}

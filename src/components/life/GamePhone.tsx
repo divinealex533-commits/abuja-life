@@ -13,7 +13,8 @@ const HIDDEN_ON = ["/", "/login", "/register", "/signup", "/create-character", "
 const APPS: { label: string; icon: string; href?: string; action?: "shift"; tone: string }[] = [
   { label: "Work", icon: "💼", action: "shift", tone: "from-emerald-400 to-emerald-600" },
   { label: "Jobs", icon: "📋", href: "/careers", tone: "from-teal-400 to-cyan-600" },
-  { label: "Map", icon: "🗺️", href: "/map", tone: "from-sky-400 to-blue-600" },
+  { label: "Walk", icon: "🚶🏾", href: "/city", tone: "from-sky-400 to-blue-600" },
+  { label: "Nigeria", icon: "🗺️", href: "/map", tone: "from-emerald-300 to-teal-600" },
   { label: "Chat", icon: "💬", href: "/friends", tone: "from-green-400 to-green-600" },
   { label: "VIP", icon: "👑", href: "/vip", tone: "from-amber-300 to-orange-500" },
   { label: "Me", icon: "🧑🏾", href: "/profile", tone: "from-fuchsia-400 to-purple-600" },
