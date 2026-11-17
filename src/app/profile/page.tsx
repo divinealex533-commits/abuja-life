@@ -17,6 +17,7 @@ import {
   type PlayerGameState,
 } from "@/lib/game/player";
 import { loadOwnedVehicles } from "@/lib/game/garage";
+import SocialsManager from "@/components/social/SocialsManager";
 
 
 export default function ProfilePage() {
@@ -209,6 +210,8 @@ export default function ProfilePage() {
             {xpPercent}% to next level
           </div>
         </section>
+
+        <SocialsManager />
 
         {/* Skills */}
         <section className="mt-6">

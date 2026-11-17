@@ -300,6 +300,20 @@ export async function GET() {
     checks.push(...tableChecks);
 
     checks.push(
+      await runCheck("socials-live", "Socials & Go Live", "Game systems", async () => {
+        const { error } = await supabase
+          .from("player_profiles")
+          .select("socials, live_platform, live_started_at", { head: true, count: "exact" });
+        if (error) {
+          return {
+            status: "fail" as const,
+            message: /does not exist|schema cache/i.test(error.message)
+              ? "Socials columns are missing. Run 20261120_socials_live.sql in Supabase."
+              : error.message,
+          };
+        }
+        return { status: "pass" as const, message: "Players can link socials and go live." };
+      }),
       await runCheck("paystack-public", "Paystack public key", "Payments", async () =>
         process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
           ? { status: "pass" as const, message: "Public key is set." }

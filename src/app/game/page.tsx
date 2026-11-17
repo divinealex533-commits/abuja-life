@@ -59,6 +59,7 @@ import VehicleDrivingGame from "@/components/game/VehicleDrivingGame";
 import Link from "next/link";
 import NotificationBell from "@/components/game/NotificationBell";
 import AnnouncementBanner from "@/components/announcements/AnnouncementBanner";
+import LiveNowStrip from "@/components/social/LiveNowStrip";
 
 import {
   DEFAULT_CITY_STATE,
@@ -613,6 +614,9 @@ const cityActivities = [
 
 {/* ADMIN ANNOUNCEMENTS */}
 <AnnouncementBanner />
+
+{/* PLAYERS STREAMING ON TIKTOK / INSTAGRAM / YOUTUBE */}
+<LiveNowStrip />
 
 {/* LIVE CITY HUD */}
       <section className="mx-auto max-w-7xl px-4 pt-6">
