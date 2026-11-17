@@ -4,6 +4,22 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AuthScene, {
+  AuthCard,
+  AuthLogo,
+  GameButton,
+  GameField,
+  PasswordToggle,
+} from "@/components/auth/AuthScene";
+import CharacterAvatar from "@/components/character/CharacterAvatar";
+import type { Appearance } from "@/lib/character/appearance";
+
+// Three example citizens shown on the sign-up screen.
+const SHOWCASE: Appearance[] = [
+  { skin: "#8d5524", hair: "waves", hairColor: "#141414", outfit: "agbada", outfitColor: "#f8fafc", eyes: "happy", mouth: "grin", facialHair: "goatee", accessory: "cap" },
+  { skin: "#5a3a22", hair: "braids", hairColor: "#2e1a10", outfit: "ankara", outfitColor: "#f59e0b", eyes: "round", mouth: "smile", facialHair: "none", accessory: "gele" },
+  { skin: "#a86b3c", hair: "lowcut", hairColor: "#141414", outfit: "suit", outfitColor: "#111827", eyes: "sharp", mouth: "calm", facialHair: "beard", accessory: "shades" },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,11 +29,12 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [avatar, setAvatar] = useState("🧑🏽");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const avatars = ["🧑🏽", "👨🏽", "👩🏽", "🧑🏾", "👨🏾", "👩🏾"];
+  // Legacy emoji avatar column; the real look is designed on /character next.
+  const avatar = "🧑🏽";
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,151 +119,107 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#07111f] px-4 py-10 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-          <div className="text-center">
-            <div className="text-5xl">🏙️</div>
+    <AuthScene>
+      <AuthLogo subtitle="Create your player and enter the city." />
 
-            <h1 className="mt-4 text-3xl font-black">
-              Create Your Abuja Life
-            </h1>
-
-            <p className="mt-2 text-sm text-white/50">
-              Create your player and enter the city.
+      <AuthCard>
+        {/* character showcase */}
+        <div className="relative -mt-2 mb-5 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-indigo-500/20 via-fuchsia-500/10 to-amber-500/20 px-2 pt-3">
+          <div className="flex items-end justify-center gap-1">
+            {SHOWCASE.map((look, i) => (
+              <div key={i} className={i === 1 ? "z-10 -mx-2" : "opacity-80"}>
+                <CharacterAvatar appearance={look} size={i === 1 ? 150 : 118} />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0a0f24] to-transparent px-3 pb-2.5 pt-8 text-center">
+            <p className="text-xs font-bold text-white/80">
+              Next you&apos;ll design your look: face, hair, agbada, gele, shades...
             </p>
           </div>
-
-          <form onSubmit={handleRegister} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Username
-              </label>
-
-              <input
-                type="text"
-                value={username}
-                onChange={(event) =>
-                  setUsername(event.target.value.toLowerCase())
-                }
-                placeholder="e.g. abuja_boy"
-                autoComplete="username"
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-                disabled={loading}
-              />
-
-              <p className="mt-1 text-xs text-white/35">
-                Letters, numbers and underscores only.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Display Name
-              </label>
-
-              <input
-                type="text"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="What should players call you?"
-                autoComplete="nickname"
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Email
-              </label>
-
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Password
-              </label>
-
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 6 characters"
-                autoComplete="new-password"
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="mb-3 block text-sm font-bold text-white/80">
-                Choose Your Avatar
-              </label>
-
-              <div className="grid grid-cols-6 gap-2">
-                {avatars.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setAvatar(item)}
-                    disabled={loading}
-                    className={`rounded-2xl border p-3 text-2xl transition ${
-                      avatar === item
-                        ? "border-cyan-400 bg-cyan-400/10"
-                        : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {message && (
-              <div className="rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-200">
-                {message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-cyan-500 px-5 py-4 font-black text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? "Creating Your Player..." : "Enter Abuja Life"}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-white/50">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-bold text-cyan-300 hover:text-cyan-200"
-            >
-              Login
-            </Link>
-          </div>
-
-          <div className="mt-4 text-center">
-            <Link
-              href="/"
-              className="text-xs font-bold text-white/35 hover:text-white/60"
-            >
-              ← Back to Abuja Life
-            </Link>
-          </div>
         </div>
-      </div>
-    </main>
+
+        <form onSubmit={handleRegister} className="space-y-4">
+          <GameField
+            icon="🎮"
+            label="Username"
+            hint="Letters, numbers and underscores only."
+            type="text"
+            value={username}
+            onChange={(event) => setUsername(event.target.value.toLowerCase())}
+            placeholder="e.g. abuja_boy"
+            autoComplete="username"
+            disabled={loading}
+          />
+
+          <GameField
+            icon="🪪"
+            label="Display name"
+            type="text"
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder="What should players call you?"
+            autoComplete="nickname"
+            disabled={loading}
+          />
+
+          <GameField
+            icon="📧"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            disabled={loading}
+          />
+
+          <GameField
+            icon="🔑"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="At least 6 characters"
+            autoComplete="new-password"
+            disabled={loading}
+            trailing={
+              <PasswordToggle
+                shown={showPassword}
+                onToggle={() => setShowPassword((v) => !v)}
+              />
+            }
+          />
+
+          {message && (
+            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-3.5 text-sm font-semibold text-red-200">
+              ⚠️ {message}
+            </div>
+          )}
+
+          <GameButton loading={loading} loadingText="Creating your player...">
+            ▶ Start my Abuja life
+          </GameButton>
+        </form>
+
+        <p className="mt-4 text-center text-xs text-white/40">
+          Your story starts in Garki. Hustle your way up.
+        </p>
+
+        <Link
+          href="/login"
+          className="mt-5 block rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-3.5 text-center text-sm font-black uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-400/20"
+        >
+          Already a citizen? Log in →
+        </Link>
+      </AuthCard>
+
+      <Link
+        href="/"
+        className="mt-6 text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white/70"
+      >
+        ← Back to Abuja Life
+      </Link>
+    </AuthScene>
   );
 }
