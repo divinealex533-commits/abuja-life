@@ -4,6 +4,13 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AuthScene, {
+  AuthCard,
+  AuthLogo,
+  GameButton,
+  GameField,
+  PasswordToggle,
+} from "@/components/auth/AuthScene";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,10 +43,14 @@ export default function LoginPage() {
     } catch (error) {
       console.error("Login error:", error);
 
+      const text = error instanceof Error ? error.message : "";
+
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to log in."
+        /invalid login credentials/i.test(text)
+          ? "Wrong email or password. Check them and try again."
+          : /email not confirmed/i.test(text)
+            ? "Please confirm your email first. Check your inbox for the link."
+            : text || "Unable to log in."
       );
     } finally {
       setLoading(false);
@@ -46,91 +58,86 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#07111f] px-4 py-10 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-          <div className="text-center">
-            <div className="text-5xl">🏙️</div>
+    <AuthScene>
+      <AuthLogo subtitle="Welcome back, citizen. The city has been waiting." />
 
-            <h1 className="mt-4 text-3xl font-black">
-              Welcome Back
-            </h1>
-
-            <p className="mt-2 text-sm text-white/50">
-              Enter Abuja Life and continue your journey.
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Email
-              </label>
-
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-                disabled={loading}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-white/80">
-                Password
-              </label>
-
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Your password"
-                autoComplete="current-password"
-                required
-                disabled={loading}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-cyan-400/50"
-              />
-            </div>
-
-            {message && (
-              <div className="rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-200">
-                {message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-cyan-500 px-5 py-4 font-black text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? "Entering Abuja Life..." : "Login"}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-white/50">
-            Don't have an account?{" "}
-            <Link
-              href="/register"
-              className="font-bold text-cyan-300 hover:text-cyan-200"
-            >
-              Create Player
-            </Link>
-          </div>
-
-          <div className="mt-4 text-center">
-            <Link
-              href="/"
-              className="text-xs font-bold text-white/35 hover:text-white/60"
-            >
-              ← Back to Abuja Life
-            </Link>
-          </div>
+      <AuthCard>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-black uppercase tracking-wide">Continue your story</h2>
+          <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+            Abuja · Live
+          </span>
         </div>
-      </div>
-    </main>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <GameField
+            icon="📧"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+            disabled={loading}
+          />
+
+          <GameField
+            icon="🔑"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Your password"
+            autoComplete="current-password"
+            required
+            disabled={loading}
+            trailing={
+              <PasswordToggle
+                shown={showPassword}
+                onToggle={() => setShowPassword((v) => !v)}
+              />
+            }
+          />
+
+          {message && (
+            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-3.5 text-sm font-semibold text-red-200">
+              ⚠️ {message}
+            </div>
+          )}
+
+          <GameButton loading={loading} loadingText="Entering the city...">
+            ▶ Enter the city
+          </GameButton>
+        </form>
+
+        <div className="mt-6 grid grid-cols-3 gap-2 text-center">
+          {[
+            ["💼", "Real jobs"],
+            ["⚖️", "Courts & EFCC"],
+            ["🏆", "Weekend prizes"],
+          ].map(([icon, text]) => (
+            <div key={text} className="rounded-xl border border-white/5 bg-white/[0.03] px-2 py-2.5">
+              <div className="text-lg">{icon}</div>
+              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/50">{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/register"
+          className="mt-5 block rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-3.5 text-center text-sm font-black uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-400/20"
+        >
+          New here? Create your player →
+        </Link>
+      </AuthCard>
+
+      <Link
+        href="/"
+        className="mt-6 text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white/70"
+      >
+        ← Back to Abuja Life
+      </Link>
+    </AuthScene>
   );
 }
