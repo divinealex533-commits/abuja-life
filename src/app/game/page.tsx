@@ -60,6 +60,7 @@ import Link from "next/link";
 import NotificationBell from "@/components/game/NotificationBell";
 import AnnouncementBanner from "@/components/announcements/AnnouncementBanner";
 import LiveNowStrip from "@/components/social/LiveNowStrip";
+import LifePanel from "@/components/life/LifePanel";
 
 import {
   DEFAULT_CITY_STATE,
@@ -614,6 +615,9 @@ const cityActivities = [
 
 {/* ADMIN ANNOUNCEMENTS */}
 <AnnouncementBanner />
+
+{/* PLAYABLE LIFE: needs, mood, activities, live work shifts */}
+<LifePanel />
 
 {/* PLAYERS STREAMING ON TIKTOK / INSTAGRAM / YOUTUBE */}
 <LiveNowStrip />

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ReferralCapture from "@/components/referral/ReferralCapture";
 import ErrorReporter from "@/components/system/ErrorReporter";
+import GamePhone from "@/components/life/GamePhone";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <ReferralCapture />
         <ErrorReporter />
+        <GamePhone />
       </body>
     </html>
   );

@@ -314,6 +314,20 @@ export async function GET() {
         }
         return { status: "pass" as const, message: "Players can link socials and go live." };
       }),
+      await runCheck("playable-life", "Needs & live shifts", "Game systems", async () => {
+        const { error } = await supabase
+          .from("player_game_states")
+          .select("needs, needs_updated_at", { head: true, count: "exact" });
+        if (error) {
+          return {
+            status: "fail" as const,
+            message: /does not exist|schema cache/i.test(error.message)
+              ? "Needs columns are missing. Run 20261121_playable_life.sql in Supabase."
+              : error.message,
+          };
+        }
+        return { status: "pass" as const, message: "Hunger, hygiene, fun and social are live." };
+      }),
       await runCheck("paystack-public", "Paystack public key", "Payments", async () =>
         process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
           ? { status: "pass" as const, message: "Public key is set." }
