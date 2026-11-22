@@ -113,7 +113,9 @@ export async function fulfillPayment(
             ? isAdPlan(id.split(":")[0] ?? "") && Boolean(id.split(":")[1])
             : kind === "cosmetic"
               ? Boolean(getCosmetic(id))
-              : Boolean(getJobById(id));
+              : kind === "partyvip"
+                ? Boolean(id)
+                : Boolean(getJobById(id));
 
   if (!known) {
     return { status: "failed", reason: "UNKNOWN_PRODUCT" };
@@ -195,6 +197,16 @@ async function deliver(
         p_plan: planId,
         p_days: AD_PLANS[planId].days,
       });
+      return error ? error.message : null;
+    }
+
+    if (kind === "partyvip") {
+      const { error } = await admin
+        .from("party_guests")
+        .upsert(
+          { party_id: id, user_id: userId, vip: true, last_seen_at: new Date().toISOString() },
+          { onConflict: "party_id,user_id" }
+        );
       return error ? error.message : null;
     }
 

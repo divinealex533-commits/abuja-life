@@ -2,6 +2,76 @@ import { normalizeAppearance, shade, type Appearance } from "@/lib/character/app
 
 export type Facing = "down" | "up" | "left" | "right";
 
+export type DanceMove = "shaku" | "zanku" | "gwara" | "azonto" | "buga" | "chill" | "toast";
+
+/**
+ * Real dance moves: arms (legA = left arm, legB = right arm), legs
+ * (stepA = left, stepB = right) and the body move on their own beats.
+ * Left arm: positive angles go out and up. Right arm: negative angles do.
+ */
+function danceCss(d: DanceMove): string {
+  const k = (name: string, frames: string, dur: string) =>
+    `.dn-${d}-${name}{animation:dn-${d}-${name} ${dur} ease-in-out infinite}@keyframes dn-${d}-${name}{${frames}}`;
+  switch (d) {
+    case "shaku":
+      return [
+        k("legA", "0%,50%,100%{transform:rotate(20deg)}25%{transform:rotate(145deg)}75%{transform:rotate(45deg)}", ".9s"),
+        k("legB", "0%,50%,100%{transform:rotate(-40deg)}25%{transform:rotate(-20deg)}75%{transform:rotate(-145deg)}", ".9s"),
+        k("stepA", "0%,50%,100%{transform:translateY(0)}25%{transform:translate(-3px,-10px)}", ".9s"),
+        k("stepB", "0%,50%,100%{transform:translateY(0)}75%{transform:translate(3px,-10px)}", ".9s"),
+        k("body", "0%,50%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,-3px) rotate(-7deg)}75%{transform:translate(3px,-3px) rotate(7deg)}", ".9s"),
+      ].join("");
+    case "zanku":
+      return [
+        k("legA", "0%,100%{transform:rotate(70deg)}50%{transform:rotate(25deg)}", ".45s"),
+        k("legB", "0%,100%{transform:rotate(-25deg)}50%{transform:rotate(-70deg)}", ".45s"),
+        k("stepA", "0%,40%,100%{transform:translate(0,0)}20%{transform:translate(-6px,-13px)}", ".8s"),
+        k("stepB", "0%,60%,100%{transform:translate(0,0)}80%{transform:translate(6px,-13px)}", ".8s"),
+        k("body", "0%,100%{transform:translateY(0) scaleY(1)}20%,80%{transform:translateY(-4px)}40%{transform:translateY(2px) scaleY(.96)}", ".8s"),
+      ].join("");
+    case "gwara":
+      return [
+        k("legA", "0%,100%{transform:rotate(25deg)}50%{transform:rotate(170deg)}", "1s"),
+        k("legB", "0%,100%{transform:rotate(-170deg)}50%{transform:rotate(-25deg)}", "1s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}", "1s"),
+        k("stepB", "0%,100%{transform:translateY(-6px)}50%{transform:translateY(0)}", "1s"),
+        k("body", "0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg) translateY(-3px)}", "1s"),
+      ].join("");
+    case "azonto":
+      return [
+        k("legA", "0%,100%{transform:rotate(100deg)}50%{transform:rotate(10deg)}", ".7s"),
+        k("legB", "0%,100%{transform:rotate(-10deg)}50%{transform:rotate(-100deg)}", ".7s"),
+        k("stepA", "0%,100%{transform:translate(-2px,-8px)}50%{transform:translate(0,0)}", ".7s"),
+        k("stepB", "0%,100%{transform:translate(0,0)}50%{transform:translate(2px,-8px)}", ".7s"),
+        k("body", "0%,100%{transform:translateX(-6px) rotate(-4deg)}50%{transform:translateX(6px) rotate(4deg)}", ".7s"),
+      ].join("");
+    case "buga":
+      return [
+        k("legA", "0%,100%{transform:rotate(12deg)}50%{transform:rotate(40deg)}", ".38s"),
+        k("legB", "0%,100%{transform:rotate(-40deg)}50%{transform:rotate(-12deg)}", ".38s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}", ".76s"),
+        k("stepB", "0%,100%{transform:translateY(-4px)}50%{transform:translateY(0)}", ".76s"),
+        k("body", "0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-4px) rotate(3deg)}75%{transform:translateY(-4px) rotate(-3deg)}", ".76s"),
+      ].join("");
+    case "toast":
+      return [
+        k("legA", "0%,70%,100%{transform:rotate(10deg)}80%,90%{transform:rotate(14deg)}", "3s"),
+        k("legB", "0%,60%,100%{transform:rotate(-120deg)}75%,90%{transform:rotate(-165deg)}", "3s"),
+        k("stepA", "0%,100%{transform:translateY(0)}", "3s"),
+        k("stepB", "0%,100%{transform:translateY(0)}", "3s"),
+        k("body", "0%,100%{transform:rotate(-1deg)}50%{transform:rotate(2deg)}", "3s"),
+      ].join("");
+    default:
+      return [
+        k("legA", "0%,100%{transform:rotate(10deg)}50%{transform:rotate(30deg)}", "1.4s"),
+        k("legB", "0%,100%{transform:rotate(-30deg)}50%{transform:rotate(-10deg)}", "1.4s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}", "1.4s"),
+        k("stepB", "0%,100%{transform:translateY(-4px)}50%{transform:translateY(0)}", "1.4s"),
+        k("body", "0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}", "1.4s"),
+      ].join("");
+  }
+}
+
 /**
  * The player's character for the walkable city, drawn from 4 sides.
  * Turns to face where it's going; arms and legs swing while walking.
@@ -12,12 +82,18 @@ export default function WalkingCharacter({
   walking,
   running = false,
   size = 120,
+  dance,
+  delay = 0,
 }: {
   appearance: Partial<Appearance> | null | undefined;
   facing: Facing;
   walking: boolean;
   running?: boolean;
   size?: number;
+  /** When set, the character faces you and dances this move. */
+  dance?: DanceMove;
+  /** Start the dance part-way in (seconds) so a crowd isn't in sync. */
+  delay?: number;
 }) {
   const a = normalizeAppearance(appearance);
   const skinShadow = shade(a.skin, -25);
@@ -28,10 +104,14 @@ export default function WalkingCharacter({
   const sleeve = a.outfit === "tshirt" ? a.skin : a.outfit === "agbada" ? a.outfitColor : outfitShadow;
   const robe = a.outfit === "agbada" || a.outfit === "kaftan" || a.outfit === "ankara";
   const speed = running ? "0.32s" : "0.5s";
+  if (dance) {
+    facing = "down";
+    walking = true;
+  }
   const side = facing === "left" || facing === "right";
 
   // Swing helpers: CSS classes are no-ops when standing still.
-  const swing = (name: string) => (walking ? `wc-${name}` : "");
+  const swing = (name: string) => (dance ? `dn-${dance}-${name}` : walking ? `wc-${name}` : "");
 
   return (
     <svg
@@ -55,11 +135,15 @@ export default function WalkingCharacter({
         @keyframes wc-stepB{from{transform:translateY(-5px)}to{transform:translateY(0)}}
         @keyframes wc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
         @keyframes wc-breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.012)}}
+        ${dance ? danceCss(dance) : ""}
       `}</style>
 
       <ellipse cx="50" cy="146" rx={side ? 18 : 22} ry="4.5" fill="rgba(0,0,0,0.3)" />
 
-      <g className={walking ? "wc-body" : "wc-idle"} style={{ transformOrigin: "50px 146px" }}>
+      <g
+        className={dance ? `dn-${dance}-body` : walking ? "wc-body" : "wc-idle"}
+        style={{ transformOrigin: "50px 146px", animationDelay: delay ? `-${delay}s` : undefined }}
+      >
         {/* The left-facing pose is the right-facing pose mirrored. */}
         <g style={facing === "left" ? { transform: "scaleX(-1)", transformOrigin: "50px 75px" } : undefined}>
           {side ? (
