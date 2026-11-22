@@ -60,6 +60,25 @@ export async function POST(request: Request) {
         await applyPlayerDelta(admin, me.id, { cash: 1_000_000 });
         return NextResponse.json({ success: true, message: "Added ₦1,000,000 game cash to your test account." });
       }
+      case "rich_mode": {
+        // Top the admin's test account up to ₦500 billion and fill every need.
+        const target = 500_000_000_000;
+        const { data: row } = await admin.from("player_game_states").select("cash").eq("user_id", me.id).maybeSingle();
+        const add = Math.max(0, target - Number(row?.cash ?? 0));
+        await applyPlayerDelta(admin, me.id, { cash: add, refillEnergy: true, reputation: 1000 });
+        await admin
+          .from("player_game_states")
+          .update({ needs: { hunger: 100, hygiene: 100, fun: 100, social: 100 }, needs_updated_at: new Date().toISOString() })
+          .eq("user_id", me.id)
+          .then(
+            () => null,
+            () => null
+          );
+        return NextResponse.json({
+          success: true,
+          message: "Rich mode on: ₦500,000,000,000 cash, full energy, full needs and +1,000 reputation. Log out and back in if the game still shows old cash.",
+        });
+      }
       case "refill_energy": {
         await applyPlayerDelta(admin, me.id, { refillEnergy: true });
         return NextResponse.json({ success: true, message: "Energy refilled." });
