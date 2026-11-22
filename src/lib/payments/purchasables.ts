@@ -18,7 +18,7 @@ import { getProduct, tierAtLeast, VIP_TIERS, type VipTier } from "@/lib/vip/cata
 import { getVipStatus } from "@/lib/vip/server";
 import { getVenue } from "@/lib/vip/venues";
 
-export type PurchaseKind = "product" | "venue" | "career" | "job" | "ad" | "cosmetic";
+export type PurchaseKind = "product" | "venue" | "career" | "job" | "ad" | "cosmetic" | "partyvip";
 
 export interface ResolvedPurchase {
   kind: PurchaseKind;
@@ -42,6 +42,7 @@ export function parsePurchaseKind(productId: string): { kind: PurchaseKind; id: 
   if (prefix === "job" && id) return { kind: "job", id };
   if (prefix === "ad" && id) return { kind: "ad", id };
   if (prefix === "cosmetic" && id) return { kind: "cosmetic", id };
+  if (prefix === "partyvip" && id) return { kind: "partyvip", id };
   return { kind: "product", id: productId };
 }
 
@@ -158,6 +159,28 @@ export async function resolvePurchase(
         description: `${AD_PLANS[planId].days} days of advertising in Abuja Life`,
         priceNaira: price.amount,
         purpose: "business_promotion",
+        oncePerAccount: false,
+      },
+    };
+  }
+
+  if (kind === "partyvip") {
+    // productId: "partyvip:<partyId>"
+    const price = await getPrice(admin, "partyvip:section");
+    if (!price || !price.active || price.method !== "naira") return notForSale;
+    const { data: party } = await admin.from("parties").select("id, title, ends_at").eq("id", id).maybeSingle();
+    if (!party || new Date(party.ends_at).getTime() <= Date.now()) {
+      return { ok: false, error: "This party has ended.", status: 400 };
+    }
+    return {
+      ok: true,
+      purchase: {
+        kind,
+        productId: `partyvip:${party.id}`,
+        name: `VIP section — ${party.title}`,
+        description: "Stand in the VIP balcony for this party.",
+        priceNaira: price.amount,
+        purpose: "vip",
         oncePerAccount: false,
       },
     };

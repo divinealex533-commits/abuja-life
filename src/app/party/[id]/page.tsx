@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import CharacterAvatar from "@/components/character/CharacterAvatar";
+import PartyScene from "@/components/party/PartyScene";
+import { startCheckout } from "@/lib/vip/client";
 import { refreshLife, useLife } from "@/lib/life/client";
 import { DANCES, NOTES, getTheme, type DanceId } from "@/lib/party/catalog";
 import { PartyBeat } from "@/lib/party/music";
@@ -18,6 +19,7 @@ interface Guest {
   appearance: unknown;
   sprayed: number;
   received: number;
+  vip: boolean;
 }
 
 interface Present {
@@ -25,6 +27,7 @@ interface Present {
   name: string;
   appearance: unknown;
   dance: DanceId;
+  vip?: boolean;
 }
 
 interface FlyingNote {
@@ -74,6 +77,7 @@ export default function PartyRoomPage() {
   const [musicOn, setMusicOn] = useState(false);
   const [myAppearance, setMyAppearance] = useState<unknown>(null);
   const [myName, setMyName] = useState("Me");
+  const [vipPrice, setVipPrice] = useState("₦500");
   const [, tick] = useState(0);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -93,6 +97,7 @@ export default function PartyRoomPage() {
     setMe(d.me);
     setGuests(d.guests ?? []);
     setRecent(d.recent ?? []);
+    if (d.vipPrice) setVipPrice(d.vipPrice);
   }, [partyId]);
 
   // Load, join, and keep vibing.
@@ -149,7 +154,7 @@ export default function PartyRoomPage() {
         const list: Present[] = [];
         for (const metas of Object.values(state)) {
           const m = metas[metas.length - 1];
-          if (m) list.push({ id: m.id, name: m.name, appearance: m.appearance, dance: m.dance });
+          if (m) list.push({ id: m.id, name: m.name, appearance: m.appearance, dance: m.dance, vip: Boolean(m.vip) });
         }
         setPresent(list);
       })
@@ -160,7 +165,7 @@ export default function PartyRoomPage() {
       .on("broadcast", { event: "emote" }, ({ payload }) => showBubble(payload.from, payload.emoji))
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          await channel.track({ id: me, name: myName, appearance: myAppearance, dance: myDance });
+          await channel.track({ id: me, name: myName, appearance: myAppearance, dance: myDance, vip: myVipRef.current });
         }
       });
     channelRef.current = channel;
@@ -172,11 +177,40 @@ export default function PartyRoomPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, partyId]);
 
-  // Update my presence when my dance or look changes.
+  const myVip = Boolean(guests.find((g) => g.id === me)?.vip);
+  const myVipRef = useRef(false);
+  myVipRef.current = myVip;
+
+  // Update my presence when my dance, look or VIP status changes.
   useEffect(() => {
     if (!me || !channelRef.current) return;
-    void channelRef.current.track({ id: me, name: myName, appearance: myAppearance, dance: myDance });
-  }, [myDance, myAppearance, myName, me]);
+    void channelRef.current.track({ id: me, name: myName, appearance: myAppearance, dance: myDance, vip: myVip });
+  }, [myDance, myAppearance, myName, me, myVip]);
+
+  async function joinVip() {
+    const r = await fetch("/api/parties", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "vip", partyId }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (d.checkout && d.productId) {
+      const problem = await startCheckout(d.productId);
+      if (problem) setToast({ tone: "err", text: problem });
+      return;
+    }
+    if (!r.ok) {
+      setToast({ tone: "err", text: d.error || "Couldn't get you into VIP." });
+      return;
+    }
+    if (d.player) savePlayerState({ ...loadPlayerState(), cash: d.player.cash });
+    setToast({ tone: "ok", text: "👑 Welcome to the VIP section!" });
+    void load();
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -265,10 +299,10 @@ export default function PartyRoomPage() {
   const floor = useMemo(() => {
     const list = [...present];
     if (me && !list.some((p) => p.id === me)) {
-      list.unshift({ id: me, name: myName, appearance: myAppearance, dance: myDance });
+      list.unshift({ id: me, name: myName, appearance: myAppearance, dance: myDance, vip: myVip });
     }
     return list.sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
-  }, [present, me, myName, myAppearance, myDance]);
+  }, [present, me, myName, myAppearance, myDance, myVip]);
 
   const received = (id: string) => (guests.find((g) => g.id === id)?.received ?? 0) + (liveReceived[id] ?? 0);
   const bigSpenders = [...guests].sort((a, b) => b.sprayed - a.sprayed).filter((g) => g.sprayed > 0).slice(0, 3);
@@ -353,69 +387,41 @@ export default function PartyRoomPage() {
         </div>
       </div>
 
-      {/* DJ */}
-      <div className="relative z-10 mx-auto mt-10 w-56 rounded-t-3xl border-x-4 border-t-4 border-slate-700 bg-gradient-to-b from-slate-800 to-slate-950 p-3 text-center">
-        <div className="text-3xl">🎧</div>
-        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">DJ Abuja on the decks</div>
-        <div className="mt-2 flex justify-center gap-1">
-          {Array.from({ length: 12 }, (_, i) => (
-            <span
-              key={i}
-              className="w-1.5 rounded-full"
-              style={{
-                height: 6 + ((i * 7 + Math.floor(Date.now() / 300)) % 5) * 5,
-                background: theme.colors[i % 3],
-                transition: "height .25s",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* dance floor */}
-      <section
-        className="relative z-10 mx-3 rounded-3xl border border-white/10 p-3"
-        style={{
-          background:
-            "repeating-conic-gradient(from 45deg, rgba(255,255,255,0.06) 0 25%, rgba(0,0,0,0.25) 0 50%) 0 0 / 56px 56px",
-        }}
-      >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {floor.map((p) => {
-            const isMe = p.id === me;
-            const pile = received(p.id);
+      {/* the club */}
+      <section className="relative z-10 mt-2">
+        <PartyScene
+          colors={theme.colors}
+          title={party?.title ?? "Party"}
+          players={floor.map((p) => ({
+            id: p.id,
+            name: p.name,
+            appearance: p.appearance,
+            dance: (DANCES.some((d) => d.id === p.dance) ? p.dance : "chill") as DanceId,
+            vip: p.id === me ? myVip : Boolean(p.vip ?? guests.find((g) => g.id === p.id)?.vip),
+          }))}
+          me={me}
+          musicOn={musicOn}
+          onTapPlayer={spray}
+          onJoinVip={joinVip}
+          iAmVip={myVip}
+          vipPrice={vipPrice}
+          overlay={(id) => {
+            const pile = received(id);
             return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => spray(p.id)}
-                className={`relative overflow-hidden rounded-2xl border bg-black/30 px-2 pb-2 pt-6 text-center transition active:scale-[0.97] ${
-                  isMe ? "border-amber-300/60" : "border-white/10 hover:border-emerald-300/60"
-                }`}
-              >
-                <div className={`mx-auto w-fit d-${p.dance}`} style={{ transformOrigin: "50% 100%" }}>
-                  <CharacterAvatar appearance={p.appearance as never} size={120} />
-                </div>
+              <>
                 {pile > 0 && (
-                  <div className="absolute bottom-12 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-black text-black shadow">
+                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-black text-black shadow">
                     💸 ₦{pile.toLocaleString()}
                   </div>
                 )}
-                <div className="mt-1 truncate text-sm font-black">{isMe ? "You" : p.name}</div>
-                <div className="text-[10px] text-white/50">
-                  {DANCES.find((d) => d.id === p.dance)?.label ?? "Vibing"}
-                  {!isMe && " · tap to spray"}
-                </div>
-
-                {/* falling notes */}
                 {notes
-                  .filter((n) => n.to === p.id)
+                  .filter((n) => n.to === id)
                   .map((n) => {
                     const meta = NOTES.find((x) => x.value === n.value) ?? NOTES[0];
                     return (
                       <span
                         key={n.key}
-                        className="pointer-events-none absolute top-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-black shadow"
+                        className="absolute top-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-black shadow"
                         style={
                           {
                             left: `${n.x}%`,
@@ -431,28 +437,24 @@ export default function PartyRoomPage() {
                       </span>
                     );
                   })}
-
-                {/* emote bubbles */}
                 {bubbles
-                  .filter((b) => b.to === p.id)
+                  .filter((b) => b.to === id)
                   .map((b) => (
                     <span
                       key={b.key}
-                      className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 text-3xl"
+                      className="absolute left-1/2 top-0 -translate-x-1/2 text-3xl"
                       style={{ animation: "pt-bubble 1.8s ease-out forwards" }}
                     >
                       {b.text}
                     </span>
                   ))}
-              </button>
+              </>
             );
-          })}
-        </div>
-        {floor.length < 2 && (
-          <p className="mt-3 text-center text-xs text-white/50">
-            Invite friends! Share this page so they can join, dance and spray.
-          </p>
-        )}
+          }}
+        />
+        <p className="px-4 pt-2 text-center text-[11px] text-white/50">
+          Swipe the club sideways to see the bar and lounge · tap a dancer to spray them
+        </p>
       </section>
 
       {/* big spenders + feed */}

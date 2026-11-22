@@ -107,6 +107,17 @@ export const PRICED_ITEMS: PricedItem[] = [
     defaultAmount: CAREER_DEFAULT_FEES[career.id] ?? 20_000,
   })),
 
+  {
+    key: "partyvip:section",
+    group: "venue",
+    id: "party-vip",
+    name: "Party VIP section",
+    subtitle: "Stand in a party's VIP balcony (per party)",
+    allowedMethods: ["naira", "cash", "free"],
+    defaultMethod: "naira",
+    defaultAmount: 500,
+  },
+
   ...JOBS.map<PricedItem>((job) => ({
     key: `job:${job.id}`,
     group: "job",

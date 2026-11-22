@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { getAdminUser } from "@/lib/admin/access";
 import { getLocationById } from "@/lib/game/locations";
+import { formatPrice } from "@/lib/pricing/items";
+import { getPrice } from "@/lib/pricing/server";
 import { changeNeeds } from "@/lib/life/server";
 import {
   MAX_SPRAY_PER_REQUEST,
@@ -78,7 +81,7 @@ export async function GET(request: Request) {
   const [{ data: guests }, { data: recent }] = await Promise.all([
     admin
       .from("party_guests")
-      .select("user_id, sprayed_total, received_total, last_seen_at")
+      .select("*")
       .eq("party_id", id)
       .order("sprayed_total", { ascending: false })
       .limit(60),
@@ -121,7 +124,9 @@ export async function GET(request: Request) {
       appearance: who(g.user_id)?.appearance ?? null,
       sprayed: Number(g.sprayed_total),
       received: Number(g.received_total),
+      vip: Boolean(g.vip),
     })),
+    vipPrice: await getPrice(admin, "partyvip:section").then((p) => (p && p.active ? formatPrice(p) : null), () => null),
     recent: (recent ?? []).map((s) => ({
       from: who(s.from_id)?.display_name ?? "Player",
       to: who(s.to_id)?.display_name ?? "Player",
@@ -202,6 +207,37 @@ export async function POST(request: Request) {
       .from("party_guests")
       .upsert({ party_id: partyId, user_id: user.id, last_seen_at: nowIso }, { onConflict: "party_id,user_id" });
     return NextResponse.json({ success: true });
+  }
+
+  if (action === "vip") {
+    const grant = async () => {
+      const { error } = await admin
+        .from("party_guests")
+        .upsert({ party_id: partyId, user_id: user.id, vip: true, last_seen_at: nowIso }, { onConflict: "party_id,user_id" });
+      if (error) {
+        return NextResponse.json(
+          { error: missing(error.message) ? "VIP isn't switched on yet. The admin needs to run 20261125_party_vip.sql." : error.message },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json({ success: true, vip: true });
+    };
+
+    // Admins test everything for free. The host gets VIP at their own party.
+    if (party.host_id === user.id || (await getAdminUser())) return grant();
+
+    const price = await getPrice(admin, "partyvip:section");
+    if (!price || !price.active) return NextResponse.json({ error: "VIP is closed at the moment." }, { status: 400 });
+    if (price.method === "free") return grant();
+    if (price.method === "naira") return NextResponse.json({ checkout: true, productId: `partyvip:${partyId}` });
+    try {
+      const snapshot = await applyPlayerDelta(admin, user.id, { cash: -price.amount });
+      const res = await grant();
+      if (res.status !== 200) await applyPlayerDelta(admin, user.id, { cash: price.amount }).catch(() => null);
+      return res.status === 200 ? NextResponse.json({ success: true, vip: true, player: snapshot }) : res;
+    } catch (err) {
+      return NextResponse.json({ error: friendlyEconomyError(err instanceof Error ? err.message : "") }, { status: 400 });
+    }
   }
 
   if (action === "vibe") {
