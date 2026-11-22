@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
-import CharacterAvatar from "@/components/character/CharacterAvatar";
+import WalkingCharacter, { type Facing } from "@/components/character/WalkingCharacter";
 import { BillboardFace, useBillboards } from "@/components/world/Billboard";
 import type { Appearance } from "@/lib/character/appearance";
 import { getLocationById } from "@/lib/game/locations";
@@ -71,12 +71,11 @@ export default function CityWalkPage() {
   const playerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
-  const avatarRef = useRef<HTMLDivElement>(null);
 
   const pos = useRef({ x: 1250, y: 1650 });
   const input = useRef({ x: 0, y: 0 });
   const keys = useRef(new Set<string>());
-  const facing = useRef(1);
+  const [facing, setFacing] = useState<Facing>("down");
   const [running, setRunning] = useState(false);
   const runningRef = useRef(false);
   const [moving, setMoving] = useState(false);
@@ -149,6 +148,7 @@ export default function CityWalkPage() {
     let last = performance.now();
     let wasMoving = false;
     let lastNear: string | null = null;
+    let lastFacing: Facing = "down";
     let saveTimer = 0;
 
     const frame = (t: number) => {
@@ -178,7 +178,12 @@ export default function CityWalkPage() {
         const blockedY = insideSpot(pos.current.x, ny, -10);
         if (!blockedX) pos.current.x = nx;
         if (!blockedY) pos.current.y = ny;
-        if (Math.abs(ix) > 0.15) facing.current = ix < 0 ? -1 : 1;
+        // Face the way you're walking (the stronger direction wins).
+        const dir: Facing = Math.abs(ix) > Math.abs(iy) * 1.1 ? (ix < 0 ? "left" : "right") : iy < 0 ? "up" : "down";
+        if (dir !== lastFacing) {
+          lastFacing = dir;
+          setFacing(dir);
+        }
         saveTimer += dt;
         if (saveTimer > 1) {
           saveTimer = 0;
@@ -203,7 +208,6 @@ export default function CityWalkPage() {
         const cy = Math.max(0, Math.min(WORLD_SIZE - vh, pos.current.y - vh / 2));
         worldRef.current.style.transform = `translate3d(${-cx}px, ${-cy}px, 0)`;
         playerRef.current.style.transform = `translate3d(${pos.current.x - 40}px, ${pos.current.y - 100}px, 0)`;
-        if (avatarRef.current) avatarRef.current.style.transform = `scaleX(${facing.current})`;
         playerRef.current.style.zIndex = String(Math.round(pos.current.y));
       }
       if (dotRef.current) {
@@ -418,11 +422,7 @@ export default function CityWalkPage() {
 
         {/* me */}
         <div ref={playerRef} className="absolute left-0 top-0 h-[110px] w-20">
-          <div ref={avatarRef}>
-            <div className={moving ? "cw-bob" : ""}>
-              <CharacterAvatar appearance={appearance} size={104} animated={!moving} />
-            </div>
-          </div>
+          <WalkingCharacter appearance={appearance} facing={facing} walking={moving} running={running} size={108} />
           <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-black">
             YOU
           </div>
