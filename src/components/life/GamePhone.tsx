@@ -8,7 +8,7 @@ import NeedsBars from "@/components/life/NeedsBars";
 import { useLife } from "@/lib/life/client";
 import { abujaClock } from "@/lib/life/needs";
 
-const HIDDEN_ON = ["/", "/login", "/register", "/signup", "/create-character", "/advertise"];
+const HIDDEN_ON = ["/", "/login", "/register", "/signup", "/create-character", "/advertise", "/forgot-password", "/reset-password"];
 
 const APPS: { label: string; icon: string; href?: string; action?: "shift"; tone: string }[] = [
   { label: "Work", icon: "💼", action: "shift", tone: "from-emerald-400 to-emerald-600" },
