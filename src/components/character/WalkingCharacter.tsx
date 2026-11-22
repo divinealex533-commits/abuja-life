@@ -2,7 +2,9 @@ import { normalizeAppearance, shade, type Appearance } from "@/lib/character/app
 
 export type Facing = "down" | "up" | "left" | "right";
 
-export type DanceMove = "shaku" | "zanku" | "gwara" | "azonto" | "buga" | "chill" | "toast";
+export type DanceMove =
+  | "shaku" | "zanku" | "gwara" | "azonto" | "buga" | "chill" | "toast"
+  | "shoki" | "skelewu" | "etighi" | "legwork" | "soapy" | "kupe" | "spin" | "jump";
 
 /**
  * Real dance moves: arms (legA = left arm, legB = right arm), legs
@@ -60,6 +62,78 @@ function danceCss(d: DanceMove): string {
         k("stepA", "0%,100%{transform:translateY(0)}", "3s"),
         k("stepB", "0%,100%{transform:translateY(0)}", "3s"),
         k("body", "0%,100%{transform:rotate(-1deg)}50%{transform:rotate(2deg)}", "3s"),
+      ].join("");
+    case "shoki":
+      // Shoulders pop up and down, arms bent at the elbow, little foot taps.
+      return [
+        k("legA", "0%,100%{transform:rotate(55deg)}25%{transform:rotate(85deg)}50%{transform:rotate(55deg)}75%{transform:rotate(35deg)}", ".5s"),
+        k("legB", "0%,100%{transform:rotate(-55deg)}25%{transform:rotate(-35deg)}50%{transform:rotate(-55deg)}75%{transform:rotate(-85deg)}", ".5s"),
+        k("stepA", "0%,100%{transform:translateY(0)}25%{transform:translate(-2px,-5px)}", ".5s"),
+        k("stepB", "0%,100%{transform:translateY(0)}75%{transform:translate(2px,-5px)}", ".5s"),
+        k("body", "0%,50%,100%{transform:translateY(0)}25%,75%{transform:translateY(-5px) scaleY(1.02)}", ".5s"),
+      ].join("");
+    case "skelewu":
+      // Arms roll in front, body twists left-right, steps side to side.
+      return [
+        k("legA", "0%{transform:rotate(30deg)}25%{transform:rotate(80deg)}50%{transform:rotate(120deg)}75%{transform:rotate(80deg)}100%{transform:rotate(30deg)}", ".8s"),
+        k("legB", "0%{transform:rotate(-120deg)}25%{transform:rotate(-80deg)}50%{transform:rotate(-30deg)}75%{transform:rotate(-80deg)}100%{transform:rotate(-120deg)}", ".8s"),
+        k("stepA", "0%,100%{transform:translate(-4px,0)}50%{transform:translate(2px,-6px)}", ".8s"),
+        k("stepB", "0%,100%{transform:translate(-2px,-6px)}50%{transform:translate(4px,0)}", ".8s"),
+        k("body", "0%,100%{transform:translateX(-7px) rotate(-8deg)}50%{transform:translateX(7px) rotate(8deg)}", "1.6s"),
+      ].join("");
+    case "etighi":
+      // Hands on hips, wine the waist and bounce low.
+      return [
+        k("legA", "0%,100%{transform:rotate(40deg)}50%{transform:rotate(48deg)}", ".9s"),
+        k("legB", "0%,100%{transform:rotate(-40deg)}50%{transform:rotate(-48deg)}", ".9s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}", ".9s"),
+        k("stepB", "0%,100%{transform:translateY(-3px)}50%{transform:translateY(0)}", ".9s"),
+        k("body", "0%{transform:rotate(-10deg) translate(-4px,2px)}25%{transform:rotate(0) translate(0,5px) scaleY(.95)}50%{transform:rotate(10deg) translate(4px,2px)}75%{transform:rotate(0) translate(0,-2px)}100%{transform:rotate(-10deg) translate(-4px,2px)}", "1.1s"),
+      ].join("");
+    case "legwork":
+      // Fast crossing feet, arms out for balance.
+      return [
+        k("legA", "0%,100%{transform:rotate(80deg)}50%{transform:rotate(95deg)}", ".3s"),
+        k("legB", "0%,100%{transform:rotate(-95deg)}50%{transform:rotate(-80deg)}", ".3s"),
+        k("stepA", "0%,100%{transform:translate(0,0)}25%{transform:translate(8px,-9px)}50%{transform:translate(0,0)}75%{transform:translate(-4px,-4px)}", ".55s"),
+        k("stepB", "0%,100%{transform:translate(0,0)}25%{transform:translate(4px,-4px)}50%{transform:translate(0,0)}75%{transform:translate(-8px,-9px)}", ".55s"),
+        k("body", "0%,100%{transform:translateY(0)}25%,75%{transform:translateY(-4px)}50%{transform:translateY(1px) scaleY(.97)}", ".55s"),
+      ].join("");
+    case "soapy":
+      // Both hands rub together in front, knees bend.
+      return [
+        k("legA", "0%,100%{transform:rotate(-15deg)}50%{transform:rotate(-30deg)}", ".35s"),
+        k("legB", "0%,100%{transform:rotate(15deg)}50%{transform:rotate(30deg)}", ".35s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}", ".7s"),
+        k("stepB", "0%,100%{transform:translateY(-3px)}50%{transform:translateY(0)}", ".7s"),
+        k("body", "0%,100%{transform:translateY(2px) scaleY(.96)}50%{transform:translateY(-3px) scaleY(1)}", ".7s"),
+      ].join("");
+    case "kupe":
+      // Hands up and waving side to side, big jumps.
+      return [
+        k("legA", "0%,100%{transform:rotate(150deg)}50%{transform:rotate(175deg)}", ".6s"),
+        k("legB", "0%,100%{transform:rotate(-175deg)}50%{transform:rotate(-150deg)}", ".6s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}", ".6s"),
+        k("stepB", "0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}", ".6s"),
+        k("body", "0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-12px) rotate(5deg)}", ".6s"),
+      ].join("");
+    case "spin":
+      // Turns all the way round with arms out.
+      return [
+        k("legA", "0%,100%{transform:rotate(95deg)}", "1.2s"),
+        k("legB", "0%,100%{transform:rotate(-95deg)}", "1.2s"),
+        k("stepA", "0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}", ".6s"),
+        k("stepB", "0%,100%{transform:translateY(-6px)}50%{transform:translateY(0)}", ".6s"),
+        k("body", "0%{transform:scaleX(1)}25%{transform:scaleX(.15)}50%{transform:scaleX(-1)}75%{transform:scaleX(-.15)}100%{transform:scaleX(1)}", "1.2s"),
+      ].join("");
+    case "jump":
+      // Hype jumps with fists in the air.
+      return [
+        k("legA", "0%,40%,100%{transform:rotate(30deg)}55%,80%{transform:rotate(165deg)}", ".9s"),
+        k("legB", "0%,40%,100%{transform:rotate(-30deg)}55%,80%{transform:rotate(-165deg)}", ".9s"),
+        k("stepA", "0%,40%,100%{transform:translateY(0)}60%{transform:translateY(-6px)}", ".9s"),
+        k("stepB", "0%,40%,100%{transform:translateY(0)}60%{transform:translateY(-6px)}", ".9s"),
+        k("body", "0%,35%,100%{transform:translateY(0) scaleY(1)}40%{transform:translateY(3px) scaleY(.92)}62%{transform:translateY(-22px) scaleY(1.03)}85%{transform:translateY(0)}", ".9s"),
       ].join("");
     default:
       return [

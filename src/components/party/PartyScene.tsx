@@ -81,7 +81,7 @@ export default function PartyScene({
 
   // Build the crowd on the client so every visit looks a bit different.
   useEffect(() => {
-    const dances: DanceMove[] = ["shaku", "zanku", "gwara", "azonto", "buga", "chill"];
+    const dances: DanceMove[] = ["shaku", "zanku", "gwara", "azonto", "buga", "shoki", "skelewu", "legwork", "kupe", "etighi"];
     const crowd: Npc[] = [];
     const add = (id: string, x: number, y: number, size: number, dance: DanceMove, prop?: string) =>
       crowd.push({ id, appearance: randomAppearance(), dance, x, y, size, prop, delay: Math.random() * 1.2 });
@@ -119,10 +119,92 @@ export default function PartyScene({
     return () => window.clearInterval(t);
   }, []);
 
-  // Start scrolled to the middle of the club on phones.
+  // Dancers on the floor switch moves every few seconds.
+  useEffect(() => {
+    const moves: DanceMove[] = ["shaku", "zanku", "gwara", "azonto", "buga", "shoki", "skelewu", "legwork", "soapy", "kupe", "spin", "jump", "etighi"];
+    const t = window.setInterval(() => {
+      setNpcs((list) =>
+        list.map((n) =>
+          n.id.startsWith("f") && Math.random() < 0.35 ? { ...n, dance: moves[Math.floor(Math.random() * moves.length)] } : n
+        )
+      );
+    }, 4000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  // ---- Zoom: pinch, buttons, ctrl/⌘ + scroll wheel ----
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+
+  const applyZoom = (next: number, focus?: { x: number; y: number }) => {
+    const el = scroller.current;
+    const z = Math.max(0.4, Math.min(2.5, next));
+    if (!el) return setZoom(z);
+    const prev = zoomRef.current;
+    const fx = focus?.x ?? el.clientWidth / 2;
+    const fy = focus?.y ?? el.clientHeight / 2;
+    // Keep the point under the fingers/centre in place.
+    const worldX = (el.scrollLeft + fx) / prev;
+    const worldY = (el.scrollTop + fy) / prev;
+    zoomRef.current = z;
+    setZoom(z);
+    requestAnimationFrame(() => {
+      el.scrollLeft = worldX * z - fx;
+      el.scrollTop = worldY * z - fy;
+    });
+  };
+
+  const fitZoom = () => {
+    const el = scroller.current;
+    if (!el) return 1;
+    return Math.min(el.clientWidth / STAGE_W, el.clientHeight / STAGE_H);
+  };
+
+  // Start on the middle of the club at normal size.
   useEffect(() => {
     const el = scroller.current;
-    if (el) el.scrollLeft = (STAGE_W - el.clientWidth) / 2;
+    if (!el) return;
+    el.scrollLeft = (STAGE_W - el.clientWidth) / 2;
+    el.scrollTop = 150;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      applyZoom(zoomRef.current * (e.deltaY < 0 ? 1.1 : 0.9), { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const [a, b] = [e.touches[0], e.touches[1]];
+        pinch.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom: zoomRef.current };
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !pinch.current) return;
+      e.preventDefault();
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const rect = el.getBoundingClientRect();
+      applyZoom(pinch.current.zoom * (dist / pinch.current.dist), {
+        x: (a.clientX + b.clientX) / 2 - rect.left,
+        y: (a.clientY + b.clientY) / 2 - rect.top,
+      });
+    };
+    const onTouchEnd = () => {
+      pinch.current = null;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const floor = players.filter((p) => !p.vip);
@@ -141,7 +223,12 @@ export default function PartyScene({
   );
 
   return (
-    <div ref={scroller} className="relative w-full overflow-x-auto overflow-y-hidden">
+    <div className="relative">
+    <div
+      ref={scroller}
+      className="relative h-[72vh] max-h-[760px] min-h-[420px] w-full overflow-auto overscroll-contain"
+      style={{ touchAction: "pan-x pan-y" }}
+    >
       <style>{`
         @keyframes ps-tile{0%,100%{opacity:.25}50%{opacity:.85}}
         @keyframes ps-beam{0%{transform:rotate(-30deg)}100%{transform:rotate(30deg)}}
@@ -150,7 +237,8 @@ export default function PartyScene({
         @keyframes ps-speaker{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
       `}</style>
 
-      <div className="relative" style={{ width: STAGE_W, height: STAGE_H }}>
+      <div style={{ width: STAGE_W * zoom, height: STAGE_H * zoom }}>
+      <div className="relative origin-top-left" style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${zoom})` }}>
         {/* walls */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,#0b0716 0%,#140b26 40%,#0a0614 100%)" }} />
         <div
@@ -315,6 +403,24 @@ export default function PartyScene({
           );
         })}
       </div>
+      </div>
+    </div>
+
+    {/* zoom controls */}
+    <div className="absolute right-3 top-3 z-[1000] flex flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/70 text-lg font-black text-white shadow-xl backdrop-blur">
+      <button type="button" aria-label="Zoom in" onClick={() => applyZoom(zoomRef.current * 1.25)} className="h-11 w-11 border-b border-white/10 active:bg-white/20">
+        ＋
+      </button>
+      <button type="button" aria-label="Zoom out" onClick={() => applyZoom(zoomRef.current / 1.25)} className="h-11 w-11 border-b border-white/10 active:bg-white/20">
+        －
+      </button>
+      <button type="button" aria-label="See the whole club" onClick={() => applyZoom(fitZoom())} className="h-11 w-11 text-base active:bg-white/20">
+        ⤢
+      </button>
+    </div>
+    <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-black text-white/70">
+      {Math.round(zoom * 100)}%
+    </div>
     </div>
   );
 }
