@@ -16,12 +16,13 @@ import VehicleTestDriveGame, {
 import {
   addOwnedVehicle,
 } from "@/lib/game/garage";
-import {
-  loadPlayerState,
-  savePlayerState,
-} from "@/lib/game/player";
+import { loadPlayerState } from "@/lib/game/player";
 
 import VipSection from "@/components/vip/VipSection";
+import CarModel from "@/components/cars/CarModel";
+import CarShowcase from "@/components/cars/CarShowcase";
+import { bodyFor, defaultPaint, paintHex } from "@/lib/cars/style";
+import { syncPlayerSnapshot } from "@/lib/vip/client";
 type FilterClass =
   | "all"
   | "economy"
@@ -460,12 +461,7 @@ function VehicleCard({
         </div>
 
         <div className="relative h-56 w-full overflow-hidden rounded-2xl bg-black/20">
-          <img
-            src={vehicle.image}
-            alt={vehicle.name}
-            loading="lazy"
-            className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
-          />
+          <CardPicture vehicle={vehicle} />
         </div>
 
         <div className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-gray-300">
@@ -564,7 +560,9 @@ function VehicleInspection({
   const [remainingCash, setRemainingCash] =
     useState<number | null>(null);
 
-  function handleBuyVehicle() {
+  const [paint, setPaint] = useState(() => defaultPaint(bodyFor(vehicle)));
+
+  async function handleBuyVehicle() {
     if (buying || purchaseSuccess) {
       return;
     }
@@ -572,36 +570,47 @@ function VehicleInspection({
     setBuying(true);
     setPurchaseMessage("");
 
+    // Quick check before asking the server (the server decides).
     const player = loadPlayerState();
-
-    const result = purchaseVehicle(
-      vehicle.id,
-      player.cash,
-      player.reputation
-    );
-
-    if (!result.success || !result.ownedVehicle) {
-      setPurchaseMessage(result.message);
+    const check = purchaseVehicle(vehicle.id, player.cash, player.reputation);
+    if (!check.success || !check.ownedVehicle) {
+      setPurchaseMessage(check.message);
       setBuying(false);
       return;
     }
 
-    const updatedPlayer = {
-      ...player,
-      cash: result.remainingCash,
-    };
+    try {
+      const response = await fetch("/api/vehicles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId: vehicle.id, paint }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      if (!response.ok) {
+        setPurchaseMessage(data.error || "Couldn't buy this car.");
+        return;
+      }
+      if (data.player) syncPlayerSnapshot(data.player);
 
-    savePlayerState(updatedPlayer);
+      addOwnedVehicle({
+        ...check.ownedVehicle,
+        upgrades: [`paint:${paint}`, `server:${data.vehicle?.id ?? ""}`],
+      });
 
-    addOwnedVehicle(result.ownedVehicle);
-
-    setRemainingCash(result.remainingCash);
-    setPurchaseSuccess(true);
-    setPurchaseMessage(
-      `${vehicle.name} is now yours! Your vehicle has been added to your garage.`
-    );
-
-    setBuying(false);
+      setRemainingCash(data.player?.cash ?? null);
+      setPurchaseSuccess(true);
+      setPurchaseMessage(
+        `${vehicle.name} is now yours! Your vehicle has been added to your garage.`
+      );
+    } catch {
+      setPurchaseMessage("Network problem. You weren't charged.");
+    } finally {
+      setBuying(false);
+    }
   }
 
   if (purchaseSuccess) {
@@ -639,11 +648,7 @@ function VehicleInspection({
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center justify-center">
-                <img
-                  src={vehicle.image}
-                  alt={vehicle.name}
-                  className="h-44 w-full object-contain"
-                />
+                <CarModel body={bodyFor(vehicle)} color={paintHex(paint)} lights className="h-44 w-full" />
               </div>
 
               <div className="mt-3 text-xl font-black">
@@ -728,14 +733,8 @@ function VehicleInspection({
           </button>
         </div>
 
-        <div className="mt-6 flex h-56 items-center justify-center rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-black to-orange-950/20">
-          <div className="relative h-72 w-full overflow-hidden rounded-2xl bg-black/20">
-            <img
-              src={vehicle.image}
-              alt={vehicle.name}
-              className="h-full w-full object-contain p-6"
-            />
-          </div>
+        <div className="mt-6">
+          <CarShowcase vehicle={vehicle} paint={paint} onPaint={setPaint} />
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -878,5 +877,29 @@ function VehicleInspection({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Real photo when it loads; otherwise the drawn studio model. */
+function CardPicture({ vehicle }: { vehicle: Vehicle }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <CarModel
+        body={bodyFor(vehicle)}
+        color={paintHex(defaultPaint(bodyFor(vehicle)))}
+        className="h-full w-full p-3 transition-transform duration-500 group-hover:scale-105"
+      />
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={vehicle.image}
+      alt={vehicle.name}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+    />
   );
 }

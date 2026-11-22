@@ -362,8 +362,8 @@ export default function CityWalkPage() {
                 } as CSSProperties
               }
             >
-              <span style={{ display: "inline-block", transform: vertical ? "rotate(90deg)" : i % 2 ? "scaleX(-1)" : "none" }}>
-                {["🚕", "🚗", "🚌", "🛺", "🚙", "🏍️", "🚐"][i % 7]}
+              <span style={{ display: "inline-block", transform: vertical ? (i % 2 ? "rotate(-90deg)" : "rotate(90deg)") : i % 2 ? "scaleX(-1)" : "none" }}>
+                <TopCar color={["#facc15", "#dc2626", "#1d4ed8", "#111827", "#f1f5f9", "#047857", "#ea580c"][i % 7]} taxi={i % 7 === 0} />
               </span>
             </div>
           );
@@ -695,5 +695,29 @@ function Building({ spot, night, highlight, current }: { spot: CitySpot; night: 
         style={{ left: door.x, top: door.y - 20, zIndex: Math.round(door.y) - 30 }}
       />
     </>
+  );
+}
+
+
+/** A car seen from above, driving to the right. */
+function TopCar({ color, taxi = false }: { color: string; taxi?: boolean }) {
+  return (
+    <svg width="56" height="28" viewBox="0 0 56 28">
+      <ellipse cx="28" cy="16" rx="27" ry="11" fill="rgba(0,0,0,0.3)" />
+      <rect x="6" y="2" width="8" height="4" rx="1.5" fill="#111" />
+      <rect x="40" y="2" width="8" height="4" rx="1.5" fill="#111" />
+      <rect x="6" y="22" width="8" height="4" rx="1.5" fill="#111" />
+      <rect x="40" y="22" width="8" height="4" rx="1.5" fill="#111" />
+      <rect x="2" y="4" width="52" height="20" rx="8" fill={color} stroke="rgba(0,0,0,0.35)" />
+      <path d="M33 6 Q40 14 33 22 L28 22 Q32 14 28 6 Z" fill="#1e293b" />
+      <path d="M14 7 Q10 14 14 21 L18 21 Q15 14 18 7 Z" fill="#334155" />
+      <rect x="18" y="7" width="10" height="14" rx="2" fill={color} opacity="0.85" />
+      <rect x="50" y="6" width="3" height="4" rx="1" fill="#fef9c3" />
+      <rect x="50" y="18" width="3" height="4" rx="1" fill="#fef9c3" />
+      <rect x="3" y="6" width="2" height="4" rx="1" fill="#ef4444" />
+      <rect x="3" y="18" width="2" height="4" rx="1" fill="#ef4444" />
+      {taxi && <rect x="20" y="11" width="6" height="6" rx="1" fill="#111" />}
+      {taxi && <path d="M2 14 L54 14" stroke="#111" strokeWidth="1" strokeDasharray="3 3" />}
+    </svg>
   );
 }
