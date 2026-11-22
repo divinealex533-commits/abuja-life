@@ -23,6 +23,14 @@ export const DANCES = [
   { id: "gwara", label: "Gwara Gwara", icon: "💃" },
   { id: "azonto", label: "Azonto", icon: "🙌" },
   { id: "buga", label: "Buga", icon: "😎" },
+  { id: "shoki", label: "Shoki", icon: "💪" },
+  { id: "skelewu", label: "Skelewu", icon: "🌀" },
+  { id: "etighi", label: "Etighi", icon: "🔥" },
+  { id: "legwork", label: "Legwork", icon: "👟" },
+  { id: "soapy", label: "Soapy", icon: "🧼" },
+  { id: "kupe", label: "Kupe", icon: "👐" },
+  { id: "spin", label: "Spin", icon: "🔄" },
+  { id: "jump", label: "Jump up", icon: "🚀" },
   { id: "chill", label: "Just vibing", icon: "🎶" },
 ] as const;
 
