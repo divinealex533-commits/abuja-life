@@ -35,6 +35,7 @@ export interface EffectivePrice {
 
 /** Default licence fees for the advanced careers (game cash). */
 const CAREER_DEFAULT_FEES: Record<string, number> = {
+  "mama-put": 3_000,
   "pos-agent": 5_000,
   "keke-rider": 8_000,
   mechanic: 25_000,

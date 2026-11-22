@@ -18,6 +18,16 @@ export interface Charge {
 }
 
 export const CHARGES: Record<string, Charge> = {
+  unsafe_food: {
+    key: "unsafe_food",
+    title: "Selling spoiled food to customers",
+    agency: "nafdac",
+    severity: "minor",
+    details: "Customers fell sick after eating stale food you reheated and sold.",
+    fineMin: 8_000,
+    fineMax: 25_000,
+    jailHours: 2,
+  },
   bribery: {
     key: "bribery",
     title: "Offering a bribe to an official",

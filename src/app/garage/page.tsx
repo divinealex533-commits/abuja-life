@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import CarModel from "@/components/cars/CarModel";
+import { bodyFor, defaultPaint, paintFromUpgrades, paintHex } from "@/lib/cars/style";
 import Link from "next/link";
 
 import {
@@ -15,6 +17,7 @@ import {
 
 import {
   loadOwnedVehicles,
+  saveOwnedVehicles,
   updateOwnedVehicle,
 } from "@/lib/game/garage";
 
@@ -63,6 +66,36 @@ export default function GaragePage() {
   const [message, setMessage] = useState("");
 
   const [playerCash, setPlayerCash] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/vehicles", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        const local = loadOwnedVehicles();
+        let changed = false;
+        for (const row of d?.vehicles ?? []) {
+          if (local.some((v) => v.upgrades?.includes(`server:${row.id}`))) continue;
+          local.push({
+            vehicleId: row.vehicle_id,
+            purchasedAt: row.purchased_at,
+            condition: 100,
+            customizationLevel: 0,
+            mileage: 0,
+            fuel: 100,
+            performanceLevel: 0,
+            handlingLevel: 0,
+            comfortLevel: 0,
+            upgrades: [`paint:${row.paint}`, `server:${row.id}`],
+          });
+          changed = true;
+        }
+        if (changed) {
+          saveOwnedVehicles(local);
+          setOwnedVehicles([...local]);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     const vehicles = loadOwnedVehicles();
@@ -275,10 +308,10 @@ export default function GaragePage() {
                   }`}
                 >
                   <div className="h-36 bg-white/[0.03]">
-                    <img
-                      src={vehicle.image}
-                      alt={vehicle.name}
-                      className="h-full w-full object-contain p-4"
+                    <CarModel
+                      body={bodyFor(vehicle)}
+                      color={paintHex(paintFromUpgrades(ownedVehicle.upgrades) ?? defaultPaint(bodyFor(vehicle)))}
+                      className="h-full w-full p-3"
                     />
                   </div>
 
@@ -320,10 +353,12 @@ export default function GaragePage() {
           selectedOwnedVehicle ? (
             <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
               <div className="relative h-[330px] bg-white/[0.025]">
-                <img
-                  src={selectedVehicle.image}
-                  alt={selectedVehicle.name}
-                  className="h-full w-full object-contain p-8"
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.18),transparent_60%)]" />
+                <CarModel
+                  body={bodyFor(selectedVehicle)}
+                  color={paintHex(paintFromUpgrades(selectedOwnedVehicle.upgrades) ?? defaultPaint(bodyFor(selectedVehicle)))}
+                  lights
+                  className="relative h-full w-full p-6"
                 />
 
                 <div className="absolute left-5 top-5 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs uppercase tracking-wider text-white/60">
