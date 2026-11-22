@@ -22,8 +22,8 @@ import {
   type CitySpot,
 } from "@/lib/world/cityLayout";
 
-const WALK_SPEED = 230; // world px per second
-const RUN_SPEED = 420;
+const WALK_SPEED = 140; // world px per second
+const RUN_SPEED = 260;
 const POS_KEY = "abujaLifeCityPos";
 
 // Deterministic scenery so server and browser match.
@@ -67,6 +67,7 @@ export default function CityWalkPage() {
   const router = useRouter();
   const life = useLife();
   const billboards = useBillboards();
+  const [partyAt, setPartyAt] = useState<Record<string, { id: string; title: string }>>({});
   const worldRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
@@ -111,6 +112,17 @@ export default function CityWalkPage() {
       start = doorOf(spot);
     }
     pos.current = start;
+
+    fetch("/api/parties", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        const map: Record<string, { id: string; title: string }> = {};
+        for (const p of d?.parties ?? []) {
+          if (p.locationId && !map[p.locationId]) map[p.locationId] = { id: p.id, title: p.title };
+        }
+        setPartyAt(map);
+      })
+      .catch(() => null);
 
     fetch("/api/character", { cache: "no-store" })
       .then((r) => r.json())
@@ -382,7 +394,7 @@ export default function CityWalkPage() {
 
         {/* places */}
         {CITY_SPOTS.map((spot) => (
-          <Building key={spot.locationId} spot={spot} night={night} highlight={spot.locationId === nearId} current={spot.locationId === currentId} />
+          <Building key={spot.locationId} spot={spot} night={night} highlight={spot.locationId === nearId} current={spot.locationId === currentId} party={Boolean(partyAt[spot.locationId])} />
         ))}
 
         {/* rented billboards */}
@@ -529,6 +541,14 @@ export default function CityWalkPage() {
               ))}
             </div>
           )}
+          {partyAt[nearSpot.locationId] && (
+            <Link
+              href={`/party/${partyAt[nearSpot.locationId].id}`}
+              className="mt-3 block w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 to-pink-500 py-3 text-center font-black uppercase tracking-wider"
+            >
+              🎉 Join {partyAt[nearSpot.locationId].title}
+            </Link>
+          )}
           <button
             id="city-enter"
             type="button"
@@ -544,7 +564,7 @@ export default function CityWalkPage() {
   );
 }
 
-function Building({ spot, night, highlight, current }: { spot: CitySpot; night: boolean; highlight: boolean; current: boolean }) {
+function Building({ spot, night, highlight, current, party }: { spot: CitySpot; night: boolean; highlight: boolean; current: boolean; party: boolean }) {
   const location = getLocationById(spot.locationId);
   const status = placeStatus(spot.locationId);
   const left = spot.x - spot.w / 2;
@@ -686,6 +706,11 @@ function Building({ spot, night, highlight, current }: { spot: CitySpot; night: 
           />
           {current && <span className="ml-1 rounded bg-red-500 px-1 text-[9px] text-white">YOU WERE HERE</span>}
         </div>
+        {party && (
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 animate-bounce whitespace-nowrap rounded-full bg-fuchsia-500 px-3 py-1 text-xs font-black text-white shadow-[0_0_20px_#d946ef]">
+            🎉 PARTY HERE
+          </div>
+        )}
       </div>
       {/* door mat */}
       <div
