@@ -34,6 +34,7 @@ const STATUS_STYLE = {
 };
 
 const TOOLS = [
+  { action: "rich_mode", label: "🤑 Rich mode: ₦500B + full needs" },
   { action: "give_cash", label: "💵 +₦1M game cash" },
   { action: "refill_energy", label: "⚡ Refill energy" },
   { action: "sample_case", label: "🚓 Charge me with a crime" },
