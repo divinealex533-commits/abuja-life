@@ -47,7 +47,7 @@ export default function LoginPage() {
 
       setMessage(
         /invalid login credentials/i.test(text)
-          ? "Wrong email or password. Check them and try again."
+          ? "Wrong email or password. Check them, or tap Forgot password to set a new one."
           : /email not confirmed/i.test(text)
             ? "Please confirm your email first. Check your inbox for the link."
             : text || "Unable to log in."
@@ -99,6 +99,12 @@ export default function LoginPage() {
               />
             }
           />
+
+          <div className="-mt-1 text-right">
+            <Link href="/forgot-password" className="text-xs font-black text-amber-200/80 hover:text-amber-100">
+              Forgot password?
+            </Link>
+          </div>
 
           {message && (
             <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-3.5 text-sm font-semibold text-red-200">
