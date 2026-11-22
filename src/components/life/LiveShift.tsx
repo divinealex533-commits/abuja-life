@@ -8,23 +8,12 @@ import { pickScenarios, rankIndexForXp, riskLabel, shiftPayAtRank } from "@/lib/
 import type { Career, ShiftChoice, ShiftDecision, ShiftResult, ShiftScenario } from "@/lib/game/careers/types";
 import { refreshLife, useLife } from "@/lib/life/client";
 import { SHIFT_TASKS } from "@/lib/life/needs";
+import ShiftMiniGame, { miniGamesFor, type MiniGameKind } from "@/components/life/ShiftMiniGame";
 import { syncPlayerSnapshot } from "@/lib/vip/client";
 
-const TASK_SECONDS = 3.2;
 const DECISION_SECONDS = 15;
 
-const TASK_WORDS = [
-  "Serve customer",
-  "Answer the phone",
-  "Count the cash",
-  "Restock",
-  "Sign the paperwork",
-  "Help a client",
-  "Clear the queue",
-  "Send the receipt",
-];
-
-type Step = { kind: "task"; label: string; x: number; y: number } | { kind: "scenario"; scenario: ShiftScenario };
+type Step = { kind: "task"; game: MiniGameKind } | { kind: "scenario"; scenario: ShiftScenario };
 
 interface LifeBonus {
   mood: number | null;
@@ -51,17 +40,11 @@ function safestChoice(scenario: ShiftScenario, rank: number): ShiftChoice {
 
 function buildSteps(career: Career): Step[] {
   const scenarios = pickScenarios(career);
-  const words = [...TASK_WORDS].sort(() => Math.random() - 0.5);
-  const task = (i: number): Step => ({
-    kind: "task",
-    label: words[i % words.length],
-    x: 12 + Math.random() * 60,
-    y: 10 + Math.random() * 55,
-  });
-  // task, scenario, task, scenario, task, scenario, task
+  const games = miniGamesFor(career.id);
+  // game, scenario, game, scenario, game, scenario, game
   const steps: Step[] = [];
   for (let i = 0; i < SHIFT_TASKS; i++) {
-    steps.push(task(i));
+    steps.push({ kind: "task", game: games[i % games.length] });
     if (scenarios[i]) steps.push({ kind: "scenario", scenario: scenarios[i] });
   }
   return steps;
@@ -171,10 +154,6 @@ export default function LiveShift({ onClose }: { onClose: () => void }) {
     if (phase.kind !== "playing" || !career) return;
     const step = phase.steps[phase.index];
     const elapsed = (now - phase.stepStartedAt) / 1000;
-    if (step.kind === "task" && elapsed > TASK_SECONDS) {
-      if (handledStep.current !== phase.index) setTaskFlash("miss");
-      advance(phase.index);
-    }
     if (step.kind === "scenario" && elapsed > DECISION_SECONDS) {
       if (handledStep.current !== phase.index) {
         const choice = safestChoice(step.scenario, rank);
@@ -276,7 +255,7 @@ export default function LiveShift({ onClose }: { onClose: () => void }) {
               </div>
 
               <ul className="mt-5 space-y-2 text-sm text-white/70">
-                <li>⚡ <b>Tap the tasks</b> that pop up before they disappear. All {SHIFT_TASKS} = <b>+15% pay</b>.</li>
+                <li>🎮 <b>Play the job mini-games</b>: serve orders, count change, dodge potholes, steady-hand timing. Win all {SHIFT_TASKS} = <b>+15% pay</b>.</li>
                 <li>🤔 <b>Make 3 decisions</b> in {DECISION_SECONDS}s each. Shady choices pay more but can get you arrested.</li>
                 <li>😎 Your mood changes your pay. Eat, bathe and have fun to stay sharp.</li>
               </ul>
@@ -300,27 +279,18 @@ export default function LiveShift({ onClose }: { onClose: () => void }) {
                 </div>
               )}
 
-              {!waiting && step.kind === "task" && (
-                <button
-                  type="button"
-                  onClick={() => {
+              {!waiting && step.kind === "task" && career && (
+                <ShiftMiniGame
+                  key={phase.index}
+                  kind={step.game}
+                  careerId={career.id}
+                  onDone={(ok) => {
                     if (phase.kind !== "playing" || handledStep.current === phase.index) return;
-                    tasksDone.current += 1;
-                    setTaskFlash("hit");
+                    if (ok) tasksDone.current += 1;
+                    setTaskFlash(ok ? "hit" : "miss");
                     advance(phase.index);
                   }}
-                  className="absolute animate-[al-pop_.25s_ease-out] rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-amber-300 to-orange-500 px-4 py-3 text-left font-black text-black shadow-[0_0_30px_rgba(245,158,11,0.7)]"
-                  style={{ left: `${step.x}%`, top: `${step.y}%` }}
-                >
-                  <div className="text-xs uppercase opacity-70">Tap fast!</div>
-                  <div>{step.label}</div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-black/20">
-                    <div
-                      className="h-full bg-black/60"
-                      style={{ width: `${Math.max(0, 100 - (elapsed / TASK_SECONDS) * 100)}%` }}
-                    />
-                  </div>
-                </button>
+                />
               )}
 
               {!waiting && step.kind === "scenario" && (
@@ -385,7 +355,7 @@ export default function LiveShift({ onClose }: { onClose: () => void }) {
                     taskFlash === "hit" ? "bg-emerald-400 text-black" : "bg-red-500 text-white"
                   }`}
                 >
-                  {taskFlash === "hit" ? "Nice! +bonus" : "Missed!"}
+                  {taskFlash === "hit" ? "Nailed it! +bonus" : "Missed that one!"}
                 </div>
               )}
             </div>
